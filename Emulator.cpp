@@ -62,6 +62,16 @@ void Emulator::drawScreen(const std::string& name) {
     screens[name].display();
 }
 
+void Emulator::handleScreenCommand(const std::string& input) {
+    if (input == "exit") {
+        inScreen = false;
+        currentScreen.clear();
+        clearScreen();
+    } else {
+        std::cout << "Unknown screen command. Type 'exit' to return to main menu." << std::endl;
+    }
+}
+
 void Emulator::handleMainCommand(const std::string& input) {
     if (input == "initialize") {
         std::cout << "initialize command recognized. Doing something." << std::endl;
@@ -106,15 +116,6 @@ void Emulator::handleMainCommand(const std::string& input) {
     }
 }
 
-void Emulator::handleScreenCommand(const std::string& input) {
-    if (input == "exit") {
-        inScreen = false;
-        currentScreen.clear();
-        clearScreen();
-    } else {
-        std::cout << "Unknown screen command. Type 'exit' to return to main menu." << std::endl;
-    }
-}
 
 void Emulator::run() {
     std::string input;
