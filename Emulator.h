@@ -1,5 +1,4 @@
-#ifndef EMULATOR_H
-#define EMULATOR_H
+#pragma once
 
 #include <string>
 #include <map>
@@ -7,19 +6,20 @@
 
 class Emulator {
 private:
+    std::string input;
     std::map<std::string, ScreenInfo> screens;
-    bool inScreen;
+    bool inScreen, inMarquee;
     std::string currentScreen;
-
+    
     void clearScreen();
     void printHeader();
     void drawScreen(const std::string& name);
     void handleMainCommand(const std::string& input);
     void handleScreenCommand(const std::string& input);
+    void handleMarqueeCommand(const std::string& input);
 
 public:
     Emulator();
+    void setInput(bool text);
     void run();
 };
-
-#endif

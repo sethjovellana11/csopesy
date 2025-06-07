@@ -1,20 +1,22 @@
 #include "Emulator.h"
+#include "Marquee.h"
 #include <iostream>
 #include <cstdlib>
-
-#ifdef _WIN32
 #define CLEAR_COMMAND "cls"
-#else
-#define CLEAR_COMMAND "clear"
-#endif
 
-Emulator::Emulator() : inScreen(false), currentScreen("") {}
+Marquee* marquee = nullptr;
+
+Emulator::Emulator() : inScreen(false), currentScreen(""), inMarquee(false){}
 
 void Emulator::clearScreen() {
     system(CLEAR_COMMAND);
     if (!inScreen) {
         printHeader();
     }
+}
+
+void Emulator::setInput(bool text){
+    inMarquee = text;
 }
 
 void Emulator::printHeader() {
@@ -72,13 +74,44 @@ void Emulator::handleScreenCommand(const std::string& input) {
     }
 }
 
+/*void Emulator::handleMarqueeCommand(const std::string& input) {
+    if (input == "exit") {
+        inMarquee = false;
+        marquee->stop();
+        delete marquee;
+        clearScreen();
+        
+    } else if (input.rfind("marquee-fps ", 0) == 0) {
+        std::string val = input.substr(12);
+        try {
+            int newFPS = std::stoi(val);
+            if (newFPS > 0 && marquee) {
+                marquee->setFPS(newFPS);
+                std::cout << "Updated marquee FPS to " << newFPS << "\n";
+            } else {
+                std::cout << "Invalid FPS value.\n";
+            }
+        } catch (...) {
+            std::cout << "Invalid FPS value.\n";
+        }
+    } else {
+        std::cout << "Unknown command. Try 'exit' or 'marquee-fps <value>'.\n";
+    }
+}*/
+
 void Emulator::handleMainCommand(const std::string& input) {
     if (input == "initialize") {
         std::cout << "initialize command recognized. Doing something." << std::endl;
-    } 
+    }  
+    else if (input == "marquee") {
+        //if (!marquee) {
+        //}
+        inMarquee = true;
+        //std::cout << "\nType 'exit' to stop marquee and return to main.\n";
+    }
     else if (input == "screen") {
-        std::cout << "screen command recognized. Doing something." << std::endl;
-    } 
+         std::cout << "screen command recognized. Doing something." << std::endl;
+    }
     else if (input.rfind("screen -s ", 0) == 0) {
         std::string name = input.substr(10);
         if (!name.empty()) 
@@ -122,12 +155,26 @@ void Emulator::run() {
     clearScreen();
 
     while (true) {
-        std::cout << "> ";
-        std::getline(std::cin, input);
-
         if (inScreen) {
+            std::cout << "> ";
+            std::getline(std::cin, input);
             handleScreenCommand(input);
-        } else {
+        }
+        else if(inMarquee){
+            if (!marquee) {
+                marquee = new Marquee("Hello World", 60, 20);
+                marquee->start();
+            } else if (!marquee->isRunning()) {
+                marquee->stop();
+                delete marquee;
+                marquee = nullptr;
+                inMarquee = false;
+                clearScreen(); 
+            }
+        } 
+        else {
+            std::cout << "> ";
+            std::getline(std::cin, input);
             handleMainCommand(input);
         }
     }
