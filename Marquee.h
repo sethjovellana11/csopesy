@@ -21,6 +21,7 @@ private:
     void handleInput();
 
     std::string text;
+    int textColor = 7;
     int width, height;
     std::atomic<bool> running;
     int fps;

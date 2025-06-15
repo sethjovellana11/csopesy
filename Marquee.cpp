@@ -12,10 +12,11 @@ bool Marquee::isRunning() const {
 }
 
 Marquee::Marquee(const std::string& text, int width, int height)
-    : text(text), width(width), height(height), running(false), fps(60),
+    : text(text), width(width), height(height), running(false), fps(30),
       x(0), y(height - 1), dx(1), dy(-1) {}
 
 void Marquee::start() {
+    if(running) return;
     running = true;
     inputThread = std::thread(&Marquee::handleInput, this);
     marqueeThread = std::thread(&Marquee::run, this);
@@ -38,10 +39,10 @@ int Marquee::getFPS() const {
 }
 
 void Marquee::run() {
-    while (running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / fps));
+    while (running) {  
         draw();
         updatePosition();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / fps));
     }
 }
 
@@ -52,9 +53,10 @@ void Marquee::draw() {
         std::lock_guard<std::mutex> lock(inputMutex);
         inputCopy = currentInput;
     }
-
-    system("cls");  
-
+    system("cls");
+    //std::cout << "******************************" << std::endl;
+    std::cout << "******************************\nWelcome to the Marquee Console!\n******************************\n";
+    //std::cout << "******************************" << std::endl;
     for (int row = 0; row < height; ++row) {
         if (row == y) {
             for (int col = 0; col < width; ++col) {
@@ -71,7 +73,7 @@ void Marquee::draw() {
         std::cout << "\n";
     }
 
-    std::cout << "\nType 'exit' to return or 'marquee-fps <value>' to change speed.\n";
+    std::cout << "\nType 'exit' to return, 'marquee-fps <value>' to change speed,\n or marquee.-text <text> to change marquee text\n";
     std::cout << "> " << inputCopy << std::flush; 
 }
 
@@ -114,8 +116,9 @@ void Marquee::handleInput() {
                         int newFps = std::stoi(input.substr(12));
                         setFPS(newFps);
                     } catch (...) {}
+                } else if (input.rfind("marquee-text", 0) == 0){
+                    text = input.substr(13);
                 }
-
                 currentInput.clear(); // Reset after enter
             } else if (ch == 8) { //backspace
                 if (!currentInput.empty()) {

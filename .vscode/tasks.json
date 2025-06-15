@@ -11,6 +11,8 @@
         "Emulator.cpp",
         "ScreenInfo.cpp",
         "Marquee.cpp",
+        "Process.cpp",
+        "Scheduler.cpp",
         "-o",
         "emulator"
       ],

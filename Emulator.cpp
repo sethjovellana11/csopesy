@@ -1,16 +1,17 @@
 #include "Emulator.h"
 #include "Marquee.h"
+#include "Scheduler.h"
 #include <iostream>
 #include <cstdlib>
-#define CLEAR_COMMAND "cls"
 
 Marquee* marquee = nullptr;
+Scheduler* scheduler = nullptr;
 
 Emulator::Emulator() : inScreen(false), currentScreen(""), inMarquee(false){}
 
 void Emulator::clearScreen() {
-    system(CLEAR_COMMAND);
-    if (!inScreen) {
+    system("cls");
+    if (!inScreen || inMarquee) {
         printHeader();
     }
 }
@@ -50,6 +51,19 @@ void Emulator::printHeader() {
         // change x in \033[xm to change color idk what looks nice haha (30-37 for foreground, 40-47 for background)
         std::cout << "\033[33mHello, welcome to CSOPESY commandline!\033[0m\n";
         std::cout << "\033[36mType 'exit' to quit, 'clear' to clear the screen.\033[0m\n";
+}
+
+void Emulator::listScreens() const {
+    if (screens.empty()) {
+        std::cout << "No screens available.\n";
+    } else {
+        std::cout << "=== Active Screen Sessions ===\n";
+        for (const auto& pair : screens) {
+            std::cout << "- " << pair.first << " (Line " << pair.second.getCurrentLine() 
+                      << "/" << pair.second.getTotalLine() << ", Created: " 
+                      << pair.second.getTimestamp() << ")\n";
+        }
+    }
 }
 
 void Emulator::drawScreen(const std::string& name) {
@@ -104,10 +118,8 @@ void Emulator::handleMainCommand(const std::string& input) {
         std::cout << "initialize command recognized. Doing something." << std::endl;
     }  
     else if (input == "marquee") {
-        //if (!marquee) {
-        //}
+        clearScreen();
         inMarquee = true;
-        //std::cout << "\nType 'exit' to stop marquee and return to main.\n";
     }
     else if (input == "screen") {
          std::cout << "screen command recognized. Doing something." << std::endl;
@@ -121,13 +133,33 @@ void Emulator::handleMainCommand(const std::string& input) {
     } 
     else if (input.rfind("screen -r ", 0) == 0) {
         std::string name = input.substr(10);
-        if (screens.find(name) != screens.end()) 
-            drawScreen(name);
-        else 
-            std::cout << "No screen named '" << name << "' found." << std::endl;
+        if(!scheduler){
+            std::cout << "Scheduler not running yet" << std::endl;
+        }
+        else{
+            clearScreen();
+            scheduler->printScreen(name);
+            inScreen = true;
+        }
     } 
+    else if (input == "screen -ls") {
+        scheduler->printScreenList();
+    }
     else if (input == "scheduler-test") {
-        std::cout << "scheduler-test command recognized. Doing something." << std::endl;
+        if (!scheduler) {
+            scheduler = new Scheduler(4); 
+                for (int i = 0; i < 10; ++i) {
+                    std::string name = "Process" + std::to_string(i + 1);
+                    Process p(name, i + 1);
+                    scheduler->addProcess(p);
+                }
+                std::cout << "Starting scheduler with 10 processes...\n";
+                std::thread([this]() { scheduler->run(); }).detach();
+        } 
+        else {
+            std::cout << "Scheduler already running.\n";
+        }
+        //std::cout << "scheduler-test command recognized. Doing something." << std::endl;
     } 
     else if (input == "scheduler-stop") {
         std::cout << "scheduler-stop command recognized. Doing something." << std::endl;
@@ -154,6 +186,11 @@ void Emulator::run() {
     std::string input;
     clearScreen();
 
+    for (int i = 0; i < 10; ++i) {
+        std::string processName = "Process_" + std::to_string(i + 1);
+        processes.emplace_back(processName, i + 1);
+    }
+
     while (true) {
         if (inScreen) {
             std::cout << "> ";
@@ -162,7 +199,7 @@ void Emulator::run() {
         }
         else if(inMarquee){
             if (!marquee) {
-                marquee = new Marquee("Hello World", 60, 20);
+                marquee = new Marquee("Hello World", 60, 10);
                 marquee->start();
             } else if (!marquee->isRunning()) {
                 marquee->stop();
