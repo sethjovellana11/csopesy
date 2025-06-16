@@ -1,0 +1,6 @@
+logs/
+.vscode/
+.vs/
+csopesy/
+x64/
+csopesy.vcxproj*
