@@ -6,9 +6,6 @@
 Process::Process(const std::string& name, int id)
     : id(id), instructionCount(0), screenInfo(name), coreID(-1){
         screenInfo.setTotalLine(100);
-        std::ofstream log("logs/" + screenInfo.getName() + ".txt", std::ios::app);
-        log << "Process name: " << name << "\nLogs:\n\n";
-        log.close();
     }
 
 void Process::assignCore(int coreID) {
@@ -17,6 +14,12 @@ void Process::assignCore(int coreID) {
 }
 
 void Process::executeNextInstruction() {
+    if (instructionCount == 0) {
+        std::ofstream log("logs/" + screenInfo.getName() + ".txt");
+        log << "Process name: " << screenInfo.getName() << "\nLogs:\n\n";
+        log.close();
+    }
+    
     instructionCount++;
     screenInfo.setCurrentLine(instructionCount);
 
