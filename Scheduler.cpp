@@ -24,6 +24,7 @@ void Scheduler::cpuWorker(int coreID) {
             std::lock_guard<std::mutex> lock(queueMutex);
             if (processQueue.empty()) break;
             current = processQueue.front();
+            current.assignCore(coreID);
             runningScreens.push_back(current.getScreenInfo());
             processQueue.pop();
         }
@@ -41,6 +42,7 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         {
+            current.assignCore(-1); //unassign core
             std::lock_guard<std::mutex> lock(runningMutex);
             auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
                 [&](const ScreenInfo& s) { return s.getName() == current.getScreenInfo().getName(); });

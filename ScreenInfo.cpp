@@ -5,10 +5,10 @@
 #include <sstream>
 
 ScreenInfo::ScreenInfo()
-    : name("Unnamed"), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()) {}
+    : name("Unnamed"), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()), coreID(-1) {}
 
 ScreenInfo::ScreenInfo(const std::string& name)
-    : name(name), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()) {}
+    : name(name), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()), coreID(-1) {}
 
 std::string ScreenInfo::getCurrentTimestamp() {
     time_t now = time(nullptr);
@@ -20,8 +20,16 @@ std::string ScreenInfo::getCurrentTimestamp() {
 
 void ScreenInfo::display() const {
     std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t"  
-                << "Core: " << ""/*core id*/ << "\t"
+                << ((currentLine == totalLine) ? "FINISHED" : ("CORE: " + std::to_string(coreID)+"  ")) << "\t"
                 << currentLine << " / " << totalLine << std::endl;
+}
+
+void ScreenInfo::setCoreID(int id) {
+    coreID = id;
+}
+
+int ScreenInfo::getCoreID() {
+    return coreID;
 }
 
 const std::string& ScreenInfo::getName() const {

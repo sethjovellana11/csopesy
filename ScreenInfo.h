@@ -9,6 +9,9 @@ public:
     void display() const;
     const std::string& getName() const;
 
+    void setCoreID(int id);
+    int getCoreID();
+
     void setTotalLine(int line);
     int getTotalLine();
 
@@ -25,6 +28,7 @@ public:
 
 private:
     std::string name;
+    int coreID;
     int currentLine;
     int totalLine;
     std::string timestamp;

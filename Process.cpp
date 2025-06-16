@@ -4,9 +4,14 @@
 #include <fstream>
 
 Process::Process(const std::string& name, int id)
-    : id(id), instructionCount(0), screenInfo(name){
+    : id(id), instructionCount(0), screenInfo(name), coreID(-1){
         screenInfo.setTotalLine(100);
     }
+
+void Process::assignCore(int coreID) {
+    this->coreID = coreID;
+    this->screenInfo.setCoreID(coreID);
+}
 
 void Process::executeNextInstruction() {
     instructionCount++;
@@ -35,4 +40,5 @@ const ScreenInfo& Process::getScreenInfo() const {
 
 void Process::updateScreenInfo() {
     screenInfo.setTimestamp(screenInfo.getCurrentTimestamp());
+    screenInfo.setCoreID(coreID);
 }
