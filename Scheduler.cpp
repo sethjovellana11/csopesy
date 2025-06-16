@@ -60,7 +60,7 @@ void Scheduler::printScreen(const std::string& screenName) const {
         std::lock_guard<std::mutex> lock(runningMutex);
         for (const auto& screen : runningScreens) {
             if (screen.getName() == screenName) {
-                std::cout << "\n=== Running Screen: " << screenName << " ===\n";
+                std::cout << "\n=== Running Processes " << screenName << " ===\n";
                 screen.display();
                 return;
             }

@@ -19,11 +19,9 @@ std::string ScreenInfo::getCurrentTimestamp() {
 }
 
 void ScreenInfo::display() const {
-    std::cout << "=== SCREEN: " << name << " ===" << std::endl;
-    std::cout << "Process Name       : " << name << std::endl;
-    std::cout << "Instruction Line   : " << currentLine << " / " << totalLine << std::endl;
-    std::cout << "Created At         : " << timestamp << std::endl;
-    //std::cout << "Type 'exit' to return to main menu.\n" << std::endl;
+    std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t"  
+                << "Core: " << ""/*core id*/ << "\t"
+                << currentLine << " / " << totalLine << std::endl;
 }
 
 const std::string& ScreenInfo::getName() const {
