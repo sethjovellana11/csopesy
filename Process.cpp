@@ -12,7 +12,7 @@ void Process::executeNextInstruction() {
     instructionCount++;
     screenInfo.setCurrentLine(instructionCount);
 
-    std::ofstream log(screenInfo.getName() +".txt", std::ios::app);
+    std::ofstream log("logs/" + screenInfo.getName() + ".txt", std::ios::app);
     log << "[" << screenInfo.getCurrentTimestamp() << "] "
         << "CPU Running " << screenInfo.getName()
         << " Instruction " << instructionCount << "\n";
