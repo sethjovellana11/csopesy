@@ -2,11 +2,30 @@
 #include <iostream>
 #include <algorithm>
 
-Scheduler::Scheduler(int coreCount) : coreCount(coreCount), running(true) {}
+Scheduler::Scheduler(int coreCount) : coreCount(coreCount), running(true), isCreatingProcesses(false){}
 
 void Scheduler::addProcess(const Process& process) {
     std::lock_guard<std::mutex> lock(queueMutex);
     processQueue.push(process);
+}
+
+void Scheduler::createProcessesStart(int batch_process_freq) {
+    isCreatingProcesses = true;
+    int cycle = 0;
+    int process_count = 0;
+
+    while (isCreatingProcesses) {
+        if (cycle == 0) {
+            // create processes using addProcess
+        }
+        
+        cycle++;
+        cycle %= batch_process_freq;
+    }
+}
+
+void Scheduler::createProcessesStop() {
+    isCreatingProcesses = false;
 }
 
 void Scheduler::run() {

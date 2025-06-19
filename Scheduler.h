@@ -11,6 +11,8 @@ class Scheduler {
 public:
     Scheduler(int coreCount);
     void addProcess(const Process& process);
+    void createProcessesStart(int batch_process_freq);
+    void createProcessesStop();
     void printScreen(const std::string& screenName) const;
     void run();
     void printScreenList() const;
@@ -29,4 +31,5 @@ private:
 
     int coreCount;
     bool running;
+    bool isCreatingProcesses;
 };
