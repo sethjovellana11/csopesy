@@ -61,7 +61,7 @@ void Emulator::printHeader() {
 
         // change x in \033[xm to change color idk what looks nice haha (30-37 for foreground, 40-47 for background)
         std::cout << "\033[33mHello, welcome to CSOPESY commandline!\033[0m\n";
-        std::cout << "\033[36mType 'exit' to quit, 'clear' to clear the screen.\033[0m\n";
+        std::cout << "\033[36mCommands: 'initialize', 'scheduler-start', 'scheduler-stop', 'screen', 'report-util', 'clear', 'exit'.\033[0m\n";
 }
 
 // Initializes emulator using config.txt
@@ -85,6 +85,12 @@ void Emulator::initialize() {
     isInitialized = true;
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
+}
+
+bool Emulator::checkInitialized() const {
+    if (!this->isInitialized)
+        std::cout << "Emulator not initialized!" << std::endl;
+    return isInitialized;
 }
 
 void Emulator::listScreens() const {
@@ -156,32 +162,39 @@ void Emulator::handleMainCommand(const std::string& input) {
         inMarquee = true;
     }
     else if (input == "screen") {
-         std::cout << "screen command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            std::cout << "screen command recognized. Doing something." << std::endl;
     }
     else if (input.rfind("screen -s ", 0) == 0) {
-        std::string name = input.substr(10);
-        if (!name.empty()) 
-            drawScreen(name);
-        else 
-            std::cout << "Missing process name after 'screen -s'" << std::endl;
+        if (checkInitialized()) {
+            std::string name = input.substr(10);
+            if (!name.empty())
+                drawScreen(name);
+            else
+                std::cout << "Missing process name after 'screen -s'" << std::endl;
+        }
     } 
     else if (input.rfind("screen -r ", 0) == 0) {
-        std::string name = input.substr(10);
-        if(!scheduler){
-            std::cout << "Scheduler not running yet" << std::endl;
-        }
-        else{
-            clearScreen();
-            scheduler->printScreen(name);
-            inScreen = true;
+        if (checkInitialized()) {
+            std::string name = input.substr(10);
+            if (!scheduler) {
+                std::cout << "Scheduler not running yet" << std::endl;
+            }
+            else {
+                clearScreen();
+                scheduler->printScreen(name);
+                inScreen = true;
+            }
         }
     } 
     else if (input == "screen -ls") {
-        scheduler->printScreenList();
+        if (checkInitialized())
+            scheduler->printScreenList();
     }
     else if (input == "scheduler-test") {
-        if (!scheduler) {
-            scheduler = new Scheduler(4); 
+        if (checkInitialized()) {
+            if (!scheduler) {
+                scheduler = new Scheduler(4);
                 for (int i = 0; i < 10; ++i) {
                     std::string name = "Process" + std::to_string(i + 1);
                     Process p(name, i + 1);
@@ -189,17 +202,19 @@ void Emulator::handleMainCommand(const std::string& input) {
                 }
                 std::cout << "Starting scheduler with 10 processes...\n";
                 std::thread([this]() { scheduler->run(); }).detach();
+            }
+            else {
+                std::cout << "Scheduler already running.\n";
+            }
         } 
-        else {
-            std::cout << "Scheduler already running.\n";
-        }
-        //std::cout << "scheduler-test command recognized. Doing something." << std::endl;
     } 
     else if (input == "scheduler-stop") {
-        std::cout << "scheduler-stop command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            std::cout << "scheduler-stop command recognized. Doing something." << std::endl;
     } 
     else if (input == "report-util") {
-        std::cout << "report-util command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            std::cout << "report-util command recognized. Doing something." << std::endl;
     } 
     else if (input == "clear") {
         clearScreen();

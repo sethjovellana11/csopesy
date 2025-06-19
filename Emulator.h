@@ -28,6 +28,7 @@ private:
     void handleScreenCommand(const std::string& input);
     void handleMarqueeCommand(const std::string& input);
     void listScreens() const;
+    bool checkInitialized() const;
 
 public:
     Emulator();
