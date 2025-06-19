@@ -10,18 +10,23 @@ void Scheduler::addProcess(const Process& process) {
 }
 
 void Scheduler::createProcessesStart(int batch_process_freq) {
-    isCreatingProcesses = true;
-    int cycle = 0;
-    int process_count = 0;
+    // create lambda function and call it as a thread
+    std::thread processCreator([this, batch_process_freq] {
+        this->isCreatingProcesses = true;
+        int cycle = 0;
+        int process_count = 0;
 
-    while (isCreatingProcesses) {
-        if (cycle == 0) {
-            // create processes using addProcess
+        while (isCreatingProcesses) {
+            if (cycle == 0) {
+                // create processes using addProcess
+            }
+
+            cycle++;
+            cycle %= batch_process_freq;
         }
-        
-        cycle++;
-        cycle %= batch_process_freq;
-    }
+        });
+    
+    processCreator.join();
 }
 
 void Scheduler::createProcessesStop() {

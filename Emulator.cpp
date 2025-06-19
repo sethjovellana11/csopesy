@@ -82,6 +82,7 @@ void Emulator::initialize() {
     }
 
     // Currently has no error catching
+    scheduler = new Scheduler(4); //TO-DO: edit this when schedulers are reimplemented
     isInitialized = true;
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
@@ -191,6 +192,7 @@ void Emulator::handleMainCommand(const std::string& input) {
         if (checkInitialized())
             scheduler->printScreenList();
     }
+    /*
     else if (input == "scheduler-test") {
         if (checkInitialized()) {
             if (!scheduler) {
@@ -208,9 +210,15 @@ void Emulator::handleMainCommand(const std::string& input) {
             }
         } 
     } 
+    */
+
+    else if (input == "scheduler-start") {
+        if (checkInitialized())
+            scheduler->createProcessesStart(batch_process_freq);
+    }
     else if (input == "scheduler-stop") {
         if (checkInitialized())
-            std::cout << "scheduler-stop command recognized. Doing something." << std::endl;
+            scheduler->createProcessesStop();
     } 
     else if (input == "report-util") {
         if (checkInitialized())
