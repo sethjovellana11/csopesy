@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "InstructionGenerator.h"
 #include "Process.h"
 #include "ScreenInfo.h"
 

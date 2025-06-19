@@ -13,6 +13,7 @@
         "Marquee.cpp",
         "Process.cpp",
         "Scheduler.cpp",
+        "InstructionGenerator.cpp",
         "-o",
         "emulator"
       ],

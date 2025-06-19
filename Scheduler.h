@@ -10,7 +10,7 @@
 class Scheduler {
 public:
     Scheduler(int coreCount);
-    void addProcess(const Process& process);
+    void addProcess(Process* process);
     void printScreen(const std::string& screenName) const;
     void run();
     void printScreenList() const;
@@ -18,7 +18,7 @@ public:
 private:
     void cpuWorker(int coreID);
 
-    std::queue<Process> processQueue;
+    std::queue<Process*> processQueue;
     std::vector<std::thread> cpuThreads;
     std::vector<ScreenInfo> finishedScreens;
     std::vector<ScreenInfo> runningScreens;

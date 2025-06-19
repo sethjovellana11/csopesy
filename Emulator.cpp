@@ -1,6 +1,7 @@
 #include "Emulator.h"
 #include "Marquee.h"
 #include "Scheduler.h"
+#include "InstructionGenerator.h"
 #include <iostream>
 #include <cstdlib>
 
@@ -146,16 +147,28 @@ void Emulator::handleMainCommand(const std::string& input) {
         scheduler->printScreenList();
     }
     else if (input == "scheduler-test") {
-        if (!scheduler) {
-            scheduler = new Scheduler(4); 
-                for (int i = 0; i < 10; ++i) {
-                    std::string name = "Process" + std::to_string(i + 1);
-                    Process p(name, i + 1);
-                    scheduler->addProcess(p);
-                }
-                std::cout << "Starting scheduler with 10 processes...\n";
-                std::thread([this]() { scheduler->run(); }).detach();
-        } 
+         if (!scheduler) {
+        scheduler = new Scheduler(4);
+
+        for (int i = 0; i < 10; ++i) {
+            std::string procName = "Process" + std::to_string(i + 1);
+            Process* process = new Process(procName, i + 1);
+
+            // Generate and assign random instructions
+            InstructionGenerator gen;
+            int numInstructions = 100; // same as setTotalLine
+            auto instructions = gen.generateInstructions(numInstructions);
+
+            for (auto& instr : instructions) {
+                process->addInstruction(instr);
+            }
+
+            scheduler->addProcess(process);
+        }
+
+        std::cout << "Starting scheduler with 10 processes...\n";
+        std::thread([this]() { scheduler->run(); }).detach();
+    }
         else {
             std::cout << "Scheduler already running.\n";
         }

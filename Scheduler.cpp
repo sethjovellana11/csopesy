@@ -4,11 +4,10 @@
 
 Scheduler::Scheduler(int coreCount) : coreCount(coreCount), running(true) {}
 
-void Scheduler::addProcess(const Process& process) {
+void Scheduler::addProcess(Process* process) {
     std::lock_guard<std::mutex> lock(queueMutex);
     processQueue.push(process);
 }
-
 void Scheduler::run() {
     for (int i = 0; i < coreCount; ++i)
         cpuThreads.emplace_back(&Scheduler::cpuWorker, this, i);
@@ -19,41 +18,40 @@ void Scheduler::run() {
 
 void Scheduler::cpuWorker(int coreID) {
     while (true) {
-        Process current("", -1);
+        Process* current = nullptr;
         {
             std::lock_guard<std::mutex> lock(queueMutex);
             if (processQueue.empty()) break;
-            current = processQueue.front();
-            current.assignCore(coreID);
-            runningScreens.push_back(current.getScreenInfo());
+            current = processQueue.front(); // use pointer directly
+            current->assignCore(coreID);
+            runningScreens.push_back(current->getScreenInfo());
             processQueue.pop();
         }
 
-        while (!current.isComplete()) {
-            current.executeNextInstruction();
+        while (!current->isComplete()) {
+            current->executeNextInstruction();
 
             std::lock_guard<std::mutex> lock(runningMutex);
             for (auto& s : runningScreens) {
-                if (s.getName() == current.getScreenInfo().getName()) {
-                    s = current.getScreenInfo();  
+                if (s.getName() == current->getScreenInfo().getName()) {
+                    s = current->getScreenInfo();  
                     break;
                 }
             }
         }
 
         {
-            current.assignCore(-1); //unassign core
+            current->assignCore(-1);
             std::lock_guard<std::mutex> lock(runningMutex);
             auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
-                [&](const ScreenInfo& s) { return s.getName() == current.getScreenInfo().getName(); });
+                [&](const ScreenInfo& s) { return s.getName() == current->getScreenInfo().getName(); });
             runningScreens.erase(it, runningScreens.end());
         }
 
         {
             std::lock_guard<std::mutex> lock(finishedMutex);
-            finishedScreens.push_back(current.getScreenInfo());
+            finishedScreens.push_back(current->getScreenInfo());
         }
-
     }
 }
 
