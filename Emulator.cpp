@@ -1,13 +1,24 @@
 #include "Emulator.h"
 #include "Marquee.h"
 #include "Scheduler.h"
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
 Marquee* marquee = nullptr;
 Scheduler* scheduler = nullptr;
 
-Emulator::Emulator() : inScreen(false), currentScreen(""), inMarquee(false){}
+Emulator::Emulator() : 
+    inScreen(false), 
+    currentScreen(""), 
+    inMarquee(false), 
+    isInitialized(false),
+    batch_process_freq(0),
+    delay_per_exec(0),
+    max_ins(0),
+    min_ins(0),
+    num_cpu(0),
+    quantum_cycles(0){}
 
 void Emulator::clearScreen() {
     system("cls");
@@ -51,6 +62,29 @@ void Emulator::printHeader() {
         // change x in \033[xm to change color idk what looks nice haha (30-37 for foreground, 40-47 for background)
         std::cout << "\033[33mHello, welcome to CSOPESY commandline!\033[0m\n";
         std::cout << "\033[36mType 'exit' to quit, 'clear' to clear the screen.\033[0m\n";
+}
+
+// Initializes emulator using config.txt
+void Emulator::initialize() {
+    std::ifstream config("config.txt");
+    std::string input;
+    std::string value;
+
+    while (std::getline(config, input, ' ')) {
+        std::getline(config, value);
+        if (input == "num-cpu") this->num_cpu = std::stoi(value);
+        else if (input == "scheduler") this->scheduler_type = value;
+        else if (input == "quantum-cycles") this->quantum_cycles = std::stoi(value);
+        else if (input == "batch-process-freq") this->batch_process_freq = std::stoi(value);
+        else if (input == "min-ins") this->min_ins = std::stoi(value);
+        else if (input == "max-ins") this->max_ins = std::stoi(value);
+        else if (input == "delays-per-exec") this->delay_per_exec = std::stoi(value);
+    }
+
+    // Currently has no error catching
+    isInitialized = true;
+    std::cout << "Emulator Initialized!" << std::endl;
+    config.close();
 }
 
 void Emulator::listScreens() const {
@@ -115,7 +149,7 @@ void Emulator::handleScreenCommand(const std::string& input) {
 
 void Emulator::handleMainCommand(const std::string& input) {
     if (input == "initialize") {
-        std::cout << "initialize command recognized. Doing something." << std::endl;
+        initialize();
     }  
     else if (input == "marquee") {
         clearScreen();
