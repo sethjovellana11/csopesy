@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <algorithm>
 #include "InstructionGenerator.h"
 #include "Process.h"
 #include "ScreenInfo.h"
@@ -14,6 +15,7 @@ private:
     std::map<std::string, ScreenInfo> screens;
     bool inScreen, inMarquee;
     std::string currentScreen;
+    std::unordered_map<std::string, Process*> activeProcesses;
     
     void clearScreen();
     void printHeader();

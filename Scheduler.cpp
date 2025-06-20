@@ -2,41 +2,94 @@
 #include <iostream>
 #include <algorithm>
 
-Scheduler::Scheduler(int coreCount) : coreCount(coreCount), running(true) {}
+Scheduler::Scheduler(int coreCount, SchedulingMode mode, int quantum)
+    : coreCount(coreCount), quantumCount(quantum), mode(mode), running(false) {}
+
+Scheduler::~Scheduler() {}
 
 void Scheduler::addProcess(Process* process) {
-    std::lock_guard<std::mutex> lock(queueMutex);
-    processQueue.push(process);
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        processQueue.push(process);
+    }
+    cv.notify_one();
 }
-void Scheduler::run() {
-    for (int i = 0; i < coreCount; ++i)
-        cpuThreads.emplace_back(&Scheduler::cpuWorker, this, i);
 
+void Scheduler::run() {
+    running = true;
+    for (int i = 0; i < coreCount; ++i) {
+        cpuThreads.emplace_back(&Scheduler::cpuWorker, this, i);
+    }
+}
+
+void Scheduler::stop() {
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        running = false;
+    }
+
+    cv.notify_all(); // wake up all waiting threads
+
+    std::cout << "Stopping scheduler...\n";
     for (auto& t : cpuThreads)
         t.join();
+
+    cpuThreads.clear(); // clean up for possible restart
 }
 
 void Scheduler::cpuWorker(int coreID) {
     while (true) {
         Process* current = nullptr;
+
         {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            if (processQueue.empty()) break;
-            current = processQueue.front(); // use pointer directly
-            current->assignCore(coreID);
-            runningScreens.push_back(current->getScreenInfo());
+            std::unique_lock<std::mutex> lock(queueMutex);
+            cv.wait(lock, [this] {
+                return !processQueue.empty() || !running;
+            });
+
+            if (!running && processQueue.empty())
+                return;
+
+            current = processQueue.front();
             processQueue.pop();
         }
 
-        while (!current->isComplete()) {
-            current->executeNextInstruction();
-
+        current->assignCore(coreID);
+        {
             std::lock_guard<std::mutex> lock(runningMutex);
-            for (auto& s : runningScreens) {
-                if (s.getName() == current->getScreenInfo().getName()) {
-                    s = current->getScreenInfo();  
-                    break;
+            runningScreens.push_back(current->getScreenInfo());
+        }
+
+        if (mode == SchedulingMode::fcfs) {
+            while (!current->isComplete() && running) {
+                current->executeNextInstruction();
+                std::lock_guard<std::mutex> lock(runningMutex);
+                /*for (auto& s : runningScreens) {
+                    if (s.getName() == current->getScreenInfo().getName()) {
+                        s = current->getScreenInfo();
+                        break;
+                    }
+                }*/
+            }
+        }
+
+        if (mode == SchedulingMode::rr) {
+            if(processQueue.size() > coreCount)
+            {
+                for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i)
+                {
+                    current->executeNextInstruction();
+                    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
+            }
+            else
+            {
+                current->executeNextInstruction();
+                //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            
+            if (!current->isComplete()) {
+                addProcess(current); // requeue
             }
         }
 
@@ -44,11 +97,13 @@ void Scheduler::cpuWorker(int coreID) {
             current->assignCore(-1);
             std::lock_guard<std::mutex> lock(runningMutex);
             auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
-                [&](const ScreenInfo& s) { return s.getName() == current->getScreenInfo().getName(); });
+                [&](const ScreenInfo& s) {
+                    return s.getName() == current->getScreenInfo().getName();
+                });
             runningScreens.erase(it, runningScreens.end());
         }
 
-        {
+        if (current->isComplete()) {
             std::lock_guard<std::mutex> lock(finishedMutex);
             finishedScreens.push_back(current->getScreenInfo());
         }
@@ -71,22 +126,53 @@ void Scheduler::printScreen(const std::string& screenName) const {
         std::lock_guard<std::mutex> lock(finishedMutex);
         for (const auto& screen : finishedScreens) {
             if (screen.getName() == screenName) {
-                std::cout << "\n=== Finished Screen: " << screenName << " ===\n";
+                std::cout << "\n=== Finished Process: " << screenName << " ===\n";
                 screen.display();
                 return;
             }
         }
     }
 
-    std::cout << "Screen \"" << screenName << "\" not found in running or finished screens.\n";
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        std::queue<Process*> tempQueue = processQueue;
+        while (!tempQueue.empty()) {
+            Process* p = tempQueue.front();
+            tempQueue.pop();
+            if (p->getScreenInfo().getName() == screenName) {
+                std::cout << "\n=== Queued Process: " << screenName << " ===\n";
+                p->getScreenInfo().display();
+                return;
+            }
+        }
+    }
+
+
+    //std::cout << "Screen \"" << screenName << "\" not found in running or finished screens.\n";
 }
 
 void Scheduler::printScreenList() const {
-    std::cout << "\n=== Running Screens ===\n";
+
+    std::cout << "\n=== Queued Process ===\n";
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        if (processQueue.empty()) {
+            std::cout << "No queued process.\n";
+        } else {
+            std::queue<Process*> tempQueue = processQueue;
+            while (!tempQueue.empty()) {
+                Process* p = tempQueue.front();
+                tempQueue.pop();
+                p->getScreenInfo().display();
+            }
+        }
+    }
+
+    std::cout << "\n=== Running Process ===\n";
     {
         std::lock_guard<std::mutex> lock(runningMutex);
         if (runningScreens.empty()) {
-            std::cout << "No screens are currently running.\n";
+            std::cout << "No process are currently running.\n";
         } else {
             for (const auto& screen : runningScreens) {
                 screen.display();
@@ -94,11 +180,11 @@ void Scheduler::printScreenList() const {
         }
     }
 
-    std::cout << "\n=== Finished Screens ===\n";
+    std::cout << "\n=== Finished Process ===\n";
     {
         std::lock_guard<std::mutex> lock(finishedMutex);
         if (finishedScreens.empty()) {
-            std::cout << "No finished screens.\n";
+            std::cout << "No finished process.\n";
         } else {
             for (const auto& screen : finishedScreens) {
                 screen.display();
