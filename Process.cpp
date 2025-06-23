@@ -1,39 +1,59 @@
 #include "Process.h"
+#include <filesystem>
+#include <fstream>
 #include <thread>
 #include <chrono>
-#include <fstream>
 
 Process::Process(const std::string& name, int id)
-    : id(id), instructionCount(0), screenInfo(name), coreID(-1){
-        screenInfo.setTotalLine(100);
-    }
+    : id(id), instructionCount(0), coreID(-1), screenInfo(name) {
+    screenInfo.setTotalLine(100);
+}
 
 void Process::assignCore(int coreID) {
     this->coreID = coreID;
-    this->screenInfo.setCoreID(coreID);
+    screenInfo.setCoreID(coreID);
+}
+void Process::addInstruction(std::shared_ptr<ICommand> instr) {
+    instructions.push_back(instr);
 }
 
 void Process::executeNextInstruction() {
+    std::filesystem::create_directory("logs");
+
+    if (instructionCount >= instructions.size()) return;
+
+    std::string logPath = "logs/" + screenInfo.getName() + ".txt";
+
+    // Initialize log file if first instruction
     if (instructionCount == 0) {
-        std::ofstream log("logs/" + screenInfo.getName() + ".txt");
-        log << "Process name: " << screenInfo.getName() << "\nLogs:\n\n";
+        std::ofstream log(logPath);
+        log << "Process Name: " << screenInfo.getName() << "\n"
+            << "Assigned Core: " << coreID << "\n"
+            << "Execution Log:\n\n";
         log.close();
     }
-    
+
+    // Execute instruction and log it
+    auto instr = instructions[instructionCount];
+    instr->execute(variables);
+
+    std::ofstream log(logPath, std::ios::app);
+    log << "[" << screenInfo.getCurrentTimestamp() << "] "
+        << "Process: " << screenInfo.getName()
+        << " | Core: " << screenInfo.getCoreID()
+        << " | Line: " << instructionCount + 1
+        << " | Instruction: " << instr->toString()
+        << "\n";
+    log.close();
+
     instructionCount++;
     screenInfo.setCurrentLine(instructionCount);
-
-    std::ofstream log("logs/" + screenInfo.getName() + ".txt", std::ios::app);
-    log << "[" << screenInfo.getCurrentTimestamp() << "] "
-        << "Core: " << screenInfo.getCoreID() << "\t"
-        << " Instruction " << instructionCount << "\n";
-    log.close();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 bool Process::isComplete() const {
-    return instructionCount >= screenInfo.getTotalLine();
+    return instructionCount >= instructions.size(); // actual count
 }
 
 int Process::getID() const {

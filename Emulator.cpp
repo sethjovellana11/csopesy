@@ -1,6 +1,7 @@
 #include "Emulator.h"
 #include "Marquee.h"
 #include "Scheduler.h"
+#include "InstructionGenerator.h"
 #include <string>
 #include <iostream>
 #include <cstdlib>
@@ -82,7 +83,7 @@ void Emulator::initialize() {
     }
 
     // Currently has no error catching
-    scheduler = new Scheduler(4); //TO-DO: edit this when schedulers are reimplemented
+    //scheduler = new Scheduler(4); //TO-DO: edit this when schedulers are reimplemented
     isInitialized = true;
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
@@ -167,21 +168,51 @@ void Emulator::handleMainCommand(const std::string& input) {
             std::cout << "screen command recognized. Doing something." << std::endl;
     }
     else if (input.rfind("screen -s ", 0) == 0) {
-        if (checkInitialized()) {
-            std::string name = input.substr(10);
-            if (!name.empty())
-                drawScreen(name);
+        std::string name = input.substr(10);
+        if (!name.empty()) 
+            if (screens.find(name) == screens.end()) 
+            {
+                std::string procName = name;
+                Process* process = new Process(procName, processes.size() + 1);
+
+                // Generate and assign random instructions
+                InstructionGenerator gen;
+                int numInstructions = 100; // same as setTotalLine
+                auto instructions = gen.generateInstructions(numInstructions);
+
+                for (auto& instr : instructions) {
+                    process->addInstruction(instr);
+                }
+
+                scheduler->addProcess(process);
+                screens[name] = ScreenInfo(name);
+                
+                clearScreen();
+                scheduler->printScreen(name);
+                inScreen = true;
+            }
             else
-                std::cout << "Missing process name after 'screen -s'" << std::endl;
-        }
+            {
+                clearScreen();
+                scheduler->printScreen(name);
+                inScreen = true;
+            }
+        else 
+            std::cout << "Missing process name after 'screen -s'" << std::endl;
     } 
     else if (input.rfind("screen -r ", 0) == 0) {
-        if (checkInitialized()) {
-            std::string name = input.substr(10);
-            if (!scheduler) {
-                std::cout << "Scheduler not running yet" << std::endl;
+        std::string name = input.substr(10);
+        if(!scheduler){
+            std::cout << "Scheduler not running yet" << std::endl;
+        }
+        else{
+            if (screens.find(name) == screens.end()) 
+            {
+                std::cout << "Process '" << "' is not found" << std::endl;
+                std::cout << "Use 'screen -r <Process Name>' to create a process" << std::endl;
             }
-            else {
+            else
+            {
                 clearScreen();
                 scheduler->printScreen(name);
                 inScreen = true;
@@ -194,6 +225,33 @@ void Emulator::handleMainCommand(const std::string& input) {
     }
     /*
     else if (input == "scheduler-test") {
+         if (!scheduler) {
+        scheduler = new Scheduler(4, SchedulingMode::rr, 5);
+
+        for (int i = 0; i < 10; ++i) {
+            std::string procName = "Process" + std::to_string(i + 1);
+            Process* process = new Process(procName, i + 1);
+
+            // Generate and assign random instructions
+            InstructionGenerator gen;
+            int numInstructions = 100; // same as setTotalLine
+            auto instructions = gen.generateInstructions(numInstructions);
+
+            for (auto& instr : instructions) {
+                process->addInstruction(instr);
+            }
+
+            scheduler->addProcess(process);
+            screens[procName] = ScreenInfo(procName);
+        }
+
+        std::cout << "Starting scheduler with 10 processes...\n";
+        std::thread([this]() { scheduler->run(); }).detach();
+    }
+        else {
+            std::cout << "Scheduler already running.\n";
+        }
+        //std::cout << "scheduler-test command recognized. Doing something." << std::endl;
         if (checkInitialized()) {
             if (!scheduler) {
                 scheduler = new Scheduler(4);
@@ -243,10 +301,10 @@ void Emulator::run() {
     std::string input;
     clearScreen();
 
-    for (int i = 0; i < 10; ++i) {
+    /*for (int i = 0; i < 10; ++i) {
         std::string processName = "Process_" + std::to_string(i + 1);
         processes.emplace_back(processName, i + 1);
-    }
+    }*/
 
     while (true) {
         if (inScreen) {
