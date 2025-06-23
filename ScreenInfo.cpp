@@ -24,6 +24,19 @@ void ScreenInfo::display() const {
                 << currentLine << " / " << totalLine << std::endl;
 }
 
+std::string ScreenInfo::toString() const {
+    std::ostringstream oss;
+    int remaining = totalLine - currentLine;
+
+    oss << "- " << name
+        << " | Line " << currentLine << "/" << totalLine
+        << " | Remaining: " << remaining
+        << " | Core ID: " << coreID
+        << " | Created: " << timestamp << "\n";
+
+    return oss.str();
+}
+
 void ScreenInfo::setCoreID(int id) {
     coreID = id;
 }

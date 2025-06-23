@@ -1,0 +1,11 @@
+=== Queued Process ===
+- Process5 | Line 1/100 | Remaining: 99 | Core ID: -1 | Created: 06/23/2025, 06:42:35 PM
+
+=== Running Process ===
+- Process1 | Line 1/100 | Remaining: 99 | Core ID: 0 | Created: 06/23/2025, 06:42:29 PM
+- Process2 | Line 1/100 | Remaining: 99 | Core ID: 1 | Created: 06/23/2025, 06:42:31 PM
+- Process3 | Line 1/100 | Remaining: 99 | Core ID: 2 | Created: 06/23/2025, 06:42:32 PM
+- Process4 | Line 1/100 | Remaining: 99 | Core ID: 3 | Created: 06/23/2025, 06:42:34 PM
+
+=== Finished Process ===
+No finished process.

@@ -83,10 +83,19 @@ void Emulator::initialize() {
     }
 
     // Currently has no error catching
-    //scheduler = new Scheduler(4); //TO-DO: edit this when schedulers are reimplemented
+    if(scheduler_type == "rr"){
+        scheduler = new Scheduler(4, SchedulingMode::rr, quantum_cycles);
+        std::cout << "ROUND ROBIN MODE" << std::endl;
+    }
+    else{
+        scheduler = new Scheduler(4, SchedulingMode::fcfs, 0);
+        std::cout << "FCFS MODE" << std::endl;
+    }
+    ; //TO-DO: edit this when schedulers are reimplemented
     isInitialized = true;
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
+    std::thread([this]() { scheduler->run(); }).detach();
 }
 
 bool Emulator::checkInitialized() const {
@@ -206,7 +215,7 @@ void Emulator::handleMainCommand(const std::string& input) {
             std::cout << "Scheduler not running yet" << std::endl;
         }
         else{
-            if (screens.find(name) == screens.end()) 
+            if (scheduler->findProcess(name) == nullptr) 
             {
                 std::cout << "Process '" << "' is not found" << std::endl;
                 std::cout << "Use 'screen -r <Process Name>' to create a process" << std::endl;
@@ -221,7 +230,10 @@ void Emulator::handleMainCommand(const std::string& input) {
     } 
     else if (input == "screen -ls") {
         if (checkInitialized())
+        {
+            clearScreen();
             scheduler->printScreenList();
+        } 
     }
     /*
     else if (input == "scheduler-test") {
@@ -273,14 +285,16 @@ void Emulator::handleMainCommand(const std::string& input) {
     else if (input == "scheduler-start") {
         if (checkInitialized())
             scheduler->createProcessesStart(batch_process_freq);
+            std::cout << "Started Processing" << std::endl;
     }
     else if (input == "scheduler-stop") {
         if (checkInitialized())
             scheduler->createProcessesStop();
+            std::cout << "Stopped Processing" << std::endl;
     } 
     else if (input == "report-util") {
         if (checkInitialized())
-            std::cout << "report-util command recognized. Doing something." << std::endl;
+            scheduler->writeScreenListToFile("csopesylog.txt");
     } 
     else if (input == "clear") {
         clearScreen();
