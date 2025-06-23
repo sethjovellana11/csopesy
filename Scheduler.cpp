@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Scheduler::Scheduler(int coreCount, SchedulingMode mode, int quantum)
-    : coreCount(coreCount), quantumCount(quantum), mode(mode), running(false) {}
+    : coreCount(coreCount), quantumCount(quantum), mode(mode), running(false), isCreatingProcesses(false) {}
 
 Scheduler::~Scheduler() {}
 
@@ -13,6 +13,30 @@ void Scheduler::addProcess(Process* process) {
         processQueue.push(process);
     }
     cv.notify_one();
+}
+
+void Scheduler::createProcessesStart(int batch_process_freq) {
+    // create lambda function and call it as a thread
+    std::thread processCreator([this, batch_process_freq] {
+        this->isCreatingProcesses = true;
+        int cycle = 0;
+        int process_count = 0;
+
+        while (isCreatingProcesses) {
+            if (cycle == 0) {
+                // create processes using addProcess
+            }
+
+            cycle++;
+            cycle %= batch_process_freq;
+        }
+        });
+    
+    processCreator.join();
+}
+
+void Scheduler::createProcessesStop() {
+    isCreatingProcesses = false;
 }
 
 void Scheduler::run() {

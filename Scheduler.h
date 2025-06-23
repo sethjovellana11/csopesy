@@ -22,6 +22,9 @@ public:
     void shutdown();
 
     void addProcess(Process* process);
+    
+    void createProcessesStart(int batch_process_freq);
+    void createProcessesStop();
     void printScreen(const std::string& screenName) const;
     void run();
     void stop();
@@ -45,4 +48,5 @@ private:
     bool running;
     std::condition_variable cv;
 
+    bool isCreatingProcesses;
 };

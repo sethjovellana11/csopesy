@@ -2,13 +2,24 @@
 #include "Marquee.h"
 #include "Scheduler.h"
 #include "InstructionGenerator.h"
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
 Marquee* marquee = nullptr;
 Scheduler* scheduler = nullptr;
 
-Emulator::Emulator() : inScreen(false), currentScreen(""), inMarquee(false){}
+Emulator::Emulator() : 
+    inScreen(false), 
+    currentScreen(""), 
+    inMarquee(false), 
+    isInitialized(false),
+    batch_process_freq(0),
+    delay_per_exec(0),
+    max_ins(0),
+    min_ins(0),
+    num_cpu(0),
+    quantum_cycles(0){}
 
 void Emulator::clearScreen() {
     system("cls");
@@ -51,7 +62,37 @@ void Emulator::printHeader() {
 
         // change x in \033[xm to change color idk what looks nice haha (30-37 for foreground, 40-47 for background)
         std::cout << "\033[33mHello, welcome to CSOPESY commandline!\033[0m\n";
-        std::cout << "\033[36mType 'exit' to quit, 'clear' to clear the screen.\033[0m\n";
+        std::cout << "\033[36mCommands: 'initialize', 'scheduler-start', 'scheduler-stop', 'screen', 'report-util', 'clear', 'exit'.\033[0m\n";
+}
+
+// Initializes emulator using config.txt
+void Emulator::initialize() {
+    std::ifstream config("config.txt");
+    std::string input;
+    std::string value;
+
+    while (std::getline(config, input, ' ')) {
+        std::getline(config, value);
+        if (input == "num-cpu") this->num_cpu = std::stoi(value);
+        else if (input == "scheduler") this->scheduler_type = value;
+        else if (input == "quantum-cycles") this->quantum_cycles = std::stoi(value);
+        else if (input == "batch-process-freq") this->batch_process_freq = std::stoi(value);
+        else if (input == "min-ins") this->min_ins = std::stoi(value);
+        else if (input == "max-ins") this->max_ins = std::stoi(value);
+        else if (input == "delays-per-exec") this->delay_per_exec = std::stoi(value);
+    }
+
+    // Currently has no error catching
+    //scheduler = new Scheduler(4); //TO-DO: edit this when schedulers are reimplemented
+    isInitialized = true;
+    std::cout << "Emulator Initialized!" << std::endl;
+    config.close();
+}
+
+bool Emulator::checkInitialized() const {
+    if (!this->isInitialized)
+        std::cout << "Emulator not initialized!" << std::endl;
+    return isInitialized;
 }
 
 void Emulator::listScreens() const {
@@ -116,14 +157,15 @@ void Emulator::handleScreenCommand(const std::string& input) {
 
 void Emulator::handleMainCommand(const std::string& input) {
     if (input == "initialize") {
-        std::cout << "initialize command recognized. Doing something." << std::endl;
+        initialize();
     }  
     else if (input == "marquee") {
         clearScreen();
         inMarquee = true;
     }
     else if (input == "screen") {
-         std::cout << "screen command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            std::cout << "screen command recognized. Doing something." << std::endl;
     }
     else if (input.rfind("screen -s ", 0) == 0) {
         std::string name = input.substr(10);
@@ -178,8 +220,10 @@ void Emulator::handleMainCommand(const std::string& input) {
         }
     } 
     else if (input == "screen -ls") {
-        scheduler->printScreenList();
+        if (checkInitialized())
+            scheduler->printScreenList();
     }
+    /*
     else if (input == "scheduler-test") {
          if (!scheduler) {
         scheduler = new Scheduler(4, SchedulingMode::rr, 5);
@@ -208,15 +252,35 @@ void Emulator::handleMainCommand(const std::string& input) {
             std::cout << "Scheduler already running.\n";
         }
         //std::cout << "scheduler-test command recognized. Doing something." << std::endl;
+        if (checkInitialized()) {
+            if (!scheduler) {
+                scheduler = new Scheduler(4);
+                for (int i = 0; i < 10; ++i) {
+                    std::string name = "Process" + std::to_string(i + 1);
+                    Process p(name, i + 1);
+                    scheduler->addProcess(p);
+                }
+                std::cout << "Starting scheduler with 10 processes...\n";
+                std::thread([this]() { scheduler->run(); }).detach();
+            }
+            else {
+                std::cout << "Scheduler already running.\n";
+            }
+        } 
     } 
+    */
+
+    else if (input == "scheduler-start") {
+        if (checkInitialized())
+            scheduler->createProcessesStart(batch_process_freq);
+    }
     else if (input == "scheduler-stop") {
-        scheduler->stop();
-        delete scheduler;         
-        scheduler = nullptr; 
-        //std::cout << "scheduler-stop command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            scheduler->createProcessesStop();
     } 
     else if (input == "report-util") {
-        std::cout << "report-util command recognized. Doing something." << std::endl;
+        if (checkInitialized())
+            std::cout << "report-util command recognized. Doing something." << std::endl;
     } 
     else if (input == "clear") {
         clearScreen();
