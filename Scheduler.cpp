@@ -32,31 +32,39 @@ Process* Scheduler::findProcess(const std::string& name) {
     return nullptr;
 }
 
-void Scheduler::createProcessesStart(int batch_process_freq) {
+void Scheduler::createProcess(const std::string& procName, int instMin, int instMax){
+    Process* p = new Process(procName, allProcesses.size() + 1);
+
+    InstructionGenerator gen;
+    int instCount = instMin + (rand() % (instMax - instMin + 1));
+    auto instructions = gen.generateInstructions(instCount);
+
+    for (auto& instr : instructions)
+        p->addInstruction(instr);
+    
+    p->getScreenInfo().setTotalLine(instCount);
+    this->addProcess(p);       
+}
+
+void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int instMax) {
     if (isCreatingProcesses) return;
 
     isCreatingProcesses = true;
-    processCreatorThread = std::thread([this, batch_process_freq] {
+    
+    processCreatorThread = std::thread([this, batch_process_freq, instMin, instMax] {
         int cycle = 0;
         int process_count = 0;
 
         while (isCreatingProcesses) {
             if (cycle == 0) {
-                std::string name = "Process" + std::to_string(process_count + 1);
-                Process* p = new Process(name, process_count + 1);
-
-                InstructionGenerator gen;
-                auto instructions = gen.generateInstructions(100);
-                for (auto& instr : instructions)
-                    p->addInstruction(instr);
-
-                this->addProcess(p);
+                std::string name = "Dummy_Process" + std::to_string(process_count + 1);
+                this->createProcess(name, instMin, instMax);
                 ++process_count;
             }
 
             ++cycle;
             cycle %= batch_process_freq;
-            std::this_thread::sleep_for(std::chrono::milliseconds(300)); // simulate pacing
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
         }
     });
 }
@@ -128,14 +136,30 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (mode == SchedulingMode::rr) {
-            while(!current->isComplete() && running && processQueue.size() <= coreCount){
+            while (!current->isComplete() && running && processQueue.size() <= coreCount) 
+            {
                 current->executeNextInstruction();
+
                 std::lock_guard<std::mutex> lock(runningMutex);
+                for (auto& s : runningScreens) {
+                    if (s.getName() == current->getScreenInfo().getName()) {
+                        s = current->getScreenInfo();
+                        break;
+                    }
+                }
             }
-            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
+            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) 
+            {
                 current->executeNextInstruction();
+                
+                // ⬇️ Add this block to refresh the screen info every instruction
                 std::lock_guard<std::mutex> lock(runningMutex);
-                //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                for (auto& s : runningScreens) {
+                    if (s.getName() == current->getScreenInfo().getName()) {
+                        s = current->getScreenInfo();  // update line/core info
+                        break;
+                    }
+                }
             }
             if (!current->isComplete()) {
                 addProcess(current); // requeue

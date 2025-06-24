@@ -5,10 +5,10 @@
 #include <sstream>
 
 ScreenInfo::ScreenInfo()
-    : name("Unnamed"), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()), coreID(-1) {}
+    : name("Unnamed"), currentLine(1), totalLine(0), timestamp(getCurrentTimestamp()), coreID(-1) {}
 
 ScreenInfo::ScreenInfo(const std::string& name)
-    : name(name), currentLine(1), totalLine(100), timestamp(getCurrentTimestamp()), coreID(-1) {}
+    : name(name), currentLine(1), totalLine(0), timestamp(getCurrentTimestamp()), coreID(-1) {}
 
 std::string ScreenInfo::getCurrentTimestamp() {
     time_t now = time(nullptr);
@@ -19,7 +19,7 @@ std::string ScreenInfo::getCurrentTimestamp() {
 }
 
 void ScreenInfo::display() const {
-    std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t"  
+    std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t\t"  
                 << ((currentLine == totalLine) ? "FINISHED" : ("CORE: " + std::to_string(coreID)+"  ")) << "\t"
                 << currentLine << " / " << totalLine << std::endl;
 }
@@ -28,11 +28,9 @@ std::string ScreenInfo::toString() const {
     std::ostringstream oss;
     int remaining = totalLine - currentLine;
 
-    oss << "- " << name
-        << " | Line " << currentLine << "/" << totalLine
-        << " | Remaining: " << remaining
-        << " | Core ID: " << coreID
-        << " | Created: " << timestamp << "\n";
+    oss << name << "\t" << "(" << timestamp << ")" << "\t\t"
+        << ((currentLine == totalLine) ? "FINISHED" : ("CORE: " + std::to_string(coreID)+"  ")) << "\t"
+        << currentLine << " / " << totalLine << "\n";
 
     return oss.str();
 }

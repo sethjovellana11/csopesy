@@ -23,9 +23,10 @@ public:
     void shutdown();
 
     void addProcess(Process* process);
+    void createProcess(const std::string& procName, int instMin, int instMax);
     
     Process* findProcess(const std::string& name);
-    void createProcessesStart(int batch_process_freq);
+    void createProcessesStart(int batch_process_freq, int instMin, int instMax);
     void createProcessesStop();
     void writeScreenListToFile(const std::string& filename) const;
     void printScreen(const std::string& screenName) const;
