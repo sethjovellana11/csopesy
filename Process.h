@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <mutex>
 
 class Process {
 public:
@@ -18,6 +19,12 @@ public:
     ScreenInfo& getScreenInfo();
     void updateScreenInfo();
 
+    // New methods to support process-smi and screen -r commands
+    void addLog(const std::string& log_message);
+    std::vector<std::string> getLogs();
+    int getTotalInstructions() const;
+    std::unordered_map<std::string, int32_t>& getVariables();
+
 private:
     int id;
     int instructionCount;
@@ -25,4 +32,8 @@ private:
     ScreenInfo screenInfo;
     std::vector<std::shared_ptr<ICommand>> instructions;
     std::unordered_map<std::string, int32_t> variables;
+
+    // A thread-safe buffer to store logs specifically from PRINT commands.
+    std::vector<std::string> print_logs;
+    mutable std::mutex log_mutex;
 };
