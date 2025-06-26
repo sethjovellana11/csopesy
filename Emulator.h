@@ -9,6 +9,10 @@
 #include "ScreenInfo.h"
 #include <fstream>
 
+// Forward declaration
+class Scheduler;
+class Marquee;
+
 class Emulator {
 private:
     std::vector <Process> processes;
@@ -29,9 +33,12 @@ private:
     void drawScreen(const std::string& name);
     void handleMainCommand(const std::string& input);
     void handleScreenCommand(const std::string& input);
-    void handleMarqueeCommand(const std::string& input);
     void listScreens() const;
     bool checkInitialized() const;
+    
+    // Helper methods for viewing process information.
+    void showProcessSMI(const std::string& screenName);
+    void printProcessInfo(const std::string& screenName);
 
 public:
     Emulator();
