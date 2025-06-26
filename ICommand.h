@@ -5,9 +5,14 @@
 #include <memory>
 #include <variant>
 
+// Forward declaration of Process class to avoid circular dependency
+class Process;
+
 class ICommand {
 public:
     virtual std::string toString() const = 0;
     virtual ~ICommand() = default;
-    virtual void execute(std::unordered_map<std::string, int32_t>& vars) = 0;
+    // The execute method now takes a reference to the Process executing it.
+    // This allows commands to interact with the process's state, like its variables and logs.
+    virtual void execute(Process& process) = 0;
 };

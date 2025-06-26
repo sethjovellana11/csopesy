@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 
 class Marquee {
 public:
@@ -29,8 +30,8 @@ private:
 
     std::string currentInput;
     std::mutex inputMutex;
+    std::condition_variable cv;
 
     std::thread marqueeThread;
     std::thread inputThread;
 };
-

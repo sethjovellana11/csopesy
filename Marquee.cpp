@@ -4,8 +4,64 @@
 #include <chrono>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
+
+#ifdef _WIN32
+#include <conio.h>
 #include <windows.h>
-#include <conio.h> 
+#else
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
+// Helper function for non-blocking input on Linux
+#ifndef _WIN32
+int _kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if(ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
+
+char _getch() {
+    char buf = 0;
+    struct termios old = {0};
+    if (tcgetattr(0, &old) < 0)
+        perror("tcsetattr()");
+    old.c_lflag &= ~ICANON;
+    old.c_lflag &= ~ECHO;
+    old.c_cc[VMIN] = 1;
+    old.c_cc[VTIME] = 0;
+    if (tcsetattr(0, TCSANOW, &old) < 0)
+        perror("tcsetattr ICANON");
+    if (read(0, &buf, 1) < 0)
+        perror ("read()");
+    old.c_lflag |= ICANON;
+    old.c_lflag |= ECHO;
+    if (tcsetattr(0, TCSADRAIN, &old) < 0)
+        perror ("tcsetattr ~ICANON");
+    return (buf);
+}
+#endif
 
 bool Marquee::isRunning() const {
     return running;
@@ -24,6 +80,7 @@ void Marquee::start() {
 
 void Marquee::stop() {
     running = false;
+    cv.notify_one(); 
     if (marqueeThread.joinable())
         marqueeThread.join();
     if (inputThread.joinable())
@@ -47,16 +104,19 @@ void Marquee::run() {
 }
 
 void Marquee::draw() {
-    
     std::string inputCopy;
     {
         std::lock_guard<std::mutex> lock(inputMutex);
         inputCopy = currentInput;
     }
-    system("cls");
-    //std::cout << "******************************" << std::endl;
+    #ifdef _WIN32
+        system("cls");
+    #else
+        std::cout << "\033[2J\033[1;1H";
+    #endif
+
     std::cout << "******************************\nWelcome to the Marquee Console!\n******************************\n";
-    //std::cout << "******************************" << std::endl;
+
     for (int row = 0; row < height; ++row) {
         if (row == y) {
             for (int col = 0; col < width; ++col) {
@@ -73,7 +133,7 @@ void Marquee::draw() {
         std::cout << "\n";
     }
 
-    std::cout << "\nType 'exit' to return, 'marquee-fps <value>' to change speed,\n or marquee.-text <text> to change marquee text\n";
+    std::cout << "\nType 'exit' to return, 'marquee-fps <value>' to change speed,\n or marquee-text <text> to change marquee text\n";
     std::cout << "> " << inputCopy << std::flush; 
 }
 
@@ -102,7 +162,7 @@ void Marquee::updatePosition() {
 
 void Marquee::handleInput() {
     while (running) {
-            if (_kbhit()) {
+        if (_kbhit()) {
             char ch = _getch();
             std::lock_guard<std::mutex> lock(inputMutex);
 
@@ -116,11 +176,11 @@ void Marquee::handleInput() {
                         int newFps = std::stoi(input.substr(12));
                         setFPS(newFps);
                     } catch (...) {}
-                } else if (input.rfind("marquee-text", 0) == 0){
+                } else if (input.rfind("marquee-text ", 0) == 0){
                     text = input.substr(13);
                 }
-                currentInput.clear(); // Reset after enter
-            } else if (ch == 8) { //backspace
+                currentInput.clear();
+            } else if (ch == 127 || ch == 8) { // Backspace
                 if (!currentInput.empty()) {
                     currentInput.pop_back();
                 }
@@ -128,7 +188,6 @@ void Marquee::handleInput() {
                 currentInput += ch;
             }
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / fps));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // prevent busy-waiting
     }
 }

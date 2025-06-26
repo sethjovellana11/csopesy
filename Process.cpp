@@ -16,14 +16,18 @@ void Process::addInstruction(std::shared_ptr<ICommand> instr) {
     instructions.push_back(instr);
 }
 
+// executeNextInstruction now passes a reference to itself to the command.
 void Process::executeNextInstruction() {
-    std::filesystem::create_directory("logs");
+    // Create logs directory if it doesn't exist.
+    if (!std::filesystem::exists("logs")) {
+        std::filesystem::create_directory("logs");
+    }
 
     if (instructionCount >= instructions.size()) return;
 
     std::string logPath = "logs/" + screenInfo.getName() + ".txt";
 
-    // Initialize log file if first instruction
+    // Initialize detailed log file if first instruction
     if (instructionCount == 0) {
         std::ofstream log(logPath);
         log << "Process Name: " << screenInfo.getName() << "\n"
@@ -34,10 +38,11 @@ void Process::executeNextInstruction() {
 
     // Execute instruction and log it
     auto instr = instructions[instructionCount];
-    instr->execute(variables);
+    instr->execute(*this); // Pass the process object itself to the command
 
+    // Write detailed log to file
     std::ofstream log(logPath, std::ios::app);
-    log << "[" << screenInfo.getCurrentTimestamp() << "] "
+    log << "[" << ScreenInfo::getCurrentTimestamp() << "] "
         << "Process: " << screenInfo.getName()
         << " | Core: " << screenInfo.getCoreID()
         << " | Line: " << instructionCount + 1
@@ -48,11 +53,12 @@ void Process::executeNextInstruction() {
     instructionCount++;
     screenInfo.setCurrentLine(instructionCount);
 
+    // This delay was in the original code
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 bool Process::isComplete() const {
-    return instructionCount >= instructions.size(); // actual count
+    return instructionCount >= instructions.size();
 }
 
 int Process::getID() const {
@@ -64,6 +70,30 @@ ScreenInfo& Process::getScreenInfo(){
 }
 
 void Process::updateScreenInfo() {
-    screenInfo.setTimestamp(screenInfo.getCurrentTimestamp());
+    screenInfo.setTimestamp(ScreenInfo::getCurrentTimestamp());
     screenInfo.setCoreID(coreID);
+}
+
+// --- New methods for 'process-smi' ---
+
+// Adds a log message from a PRINT command to the in-memory buffer.
+void Process::addLog(const std::string& log_message) {
+    std::lock_guard<std::mutex> lock(log_mutex);
+    print_logs.push_back(log_message);
+}
+
+// Safely retrieves all logs from the buffer.
+std::vector<std::string> Process::getLogs() {
+    std::lock_guard<std::mutex> lock(log_mutex);
+    return print_logs;
+}
+
+// Gets the total number of instructions for the process.
+int Process::getTotalInstructions() const {
+    return instructions.size();
+}
+
+// Provides access to the process's variables map.
+std::unordered_map<std::string, int32_t>& Process::getVariables() {
+    return variables;
 }
