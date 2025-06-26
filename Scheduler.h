@@ -7,6 +7,7 @@
 #include <thread>
 #include <condition_variable>
 #include <memory>
+#include <atomic>
 
 enum class SchedulingMode {
     fcfs,
@@ -15,12 +16,10 @@ enum class SchedulingMode {
 
 class Scheduler {
 public:
+    // This is now the only constructor. It handles both RR and FCFS.
+    // For FCFS, the 'quantum' value is ignored.
     Scheduler(int coreCount, SchedulingMode mode = SchedulingMode::rr, int quantum = 5);
-    Scheduler(int coreCount, SchedulingMode mode = SchedulingMode::fcfs);
     ~Scheduler();
-
-    void launch();
-    void shutdown();
 
     void addProcess(Process* process);
     void createProcess(const std::string& procName, int instMin, int instMax);
@@ -51,9 +50,9 @@ private:
     int quantumCount;
     int coreCount;
     SchedulingMode mode;
-    bool running;
-    std::condition_variable cv;
+    std::atomic<bool> running;
+    std::atomic<bool> isCreatingProcesses;
 
+    std::condition_variable cv;
     std::thread processCreatorThread;
-    bool isCreatingProcesses;
 };
