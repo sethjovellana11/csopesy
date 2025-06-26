@@ -57,7 +57,7 @@ void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int in
 
         while (isCreatingProcesses) {
             if (cycle == 0) {
-                std::string name = "Dummy_Process" + std::to_string(process_count + 1);
+                std::string name = "Process" + std::to_string(process_count + 1);
                 this->createProcess(name, instMin, instMax);
                 ++process_count;
             }
