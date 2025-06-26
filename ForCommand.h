@@ -1,5 +1,6 @@
 #pragma once
 #include "ICommand.h"
+#include "Process.h"
 #include <vector>
 
 class ForCommand : public ICommand {
@@ -10,10 +11,10 @@ public:
     ForCommand(const std::vector<std::shared_ptr<ICommand>>& instructions, int repeats)
         : instructions(instructions), repeats(repeats) {}
 
-    void execute(std::unordered_map<std::string, int32_t>& vars) override {
+    void execute(Process& process) override {
         for (int i = 0; i < repeats; ++i) {
             for (auto& cmd : instructions) {
-                cmd->execute(vars);
+                cmd->execute(process);
             }
         }
     }
