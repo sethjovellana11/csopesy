@@ -5,6 +5,7 @@ class ScreenInfo {
 public:
     ScreenInfo();
     explicit ScreenInfo(const std::string& name);
+    std::string toString() const;
 
     void display() const;
     const std::string& getName() const;

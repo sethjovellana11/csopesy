@@ -6,7 +6,6 @@
 
 Process::Process(const std::string& name, int id)
     : id(id), instructionCount(0), coreID(-1), screenInfo(name) {
-    screenInfo.setTotalLine(100);
 }
 
 void Process::assignCore(int coreID) {
@@ -28,7 +27,7 @@ void Process::executeNextInstruction() {
     if (instructionCount == 0) {
         std::ofstream log(logPath);
         log << "Process Name: " << screenInfo.getName() << "\n"
-            << "Assigned Core: " << coreID << "\n"
+            << "Initial Assigned Core: " << coreID << "\n"
             << "Execution Log:\n\n";
         log.close();
     }
@@ -60,7 +59,7 @@ int Process::getID() const {
     return id;
 }
 
-const ScreenInfo& Process::getScreenInfo() const {
+ScreenInfo& Process::getScreenInfo(){
     return screenInfo;
 }
 

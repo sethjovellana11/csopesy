@@ -15,7 +15,7 @@ public:
     void executeNextInstruction();
     bool isComplete() const;
     int getID() const;
-    const ScreenInfo& getScreenInfo() const;
+    ScreenInfo& getScreenInfo();
     void updateScreenInfo();
 
 private:

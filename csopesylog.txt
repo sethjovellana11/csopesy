@@ -1,0 +1,17 @@
+=== Queued Process ===
+Dummy_Process7	(06/24/2025, 05:27:45 PM)	CORE: -1  	1 / 165
+p5	(06/24/2025, 05:27:48 PM)	CORE: -1  	1 / 138
+Dummy_Process8	(06/24/2025, 05:27:54 PM)	CORE: -1  	1 / 168
+
+=== Running Process ===
+Dummy_Process5	(06/24/2025, 05:27:26 PM)	CORE: 1  	177 / 180
+p3	(06/24/2025, 05:27:29 PM)	CORE: 2  	178 / 185
+Dummy_Process6	(06/24/2025, 05:27:36 PM)	CORE: 0  	71 / 169
+p2	(06/24/2025, 05:27:44 PM)	CORE: 3  	69 / 172
+
+=== Finished Process ===
+Dummy_Process1	(06/24/2025, 05:26:49 PM)	FINISHED	141 / 141
+Dummy_Process2	(06/24/2025, 05:26:58 PM)	FINISHED	185 / 185
+p1	(06/24/2025, 05:27:01 PM)	FINISHED	141 / 141
+Dummy_Process4	(06/24/2025, 05:27:17 PM)	FINISHED	138 / 138
+Dummy_Process3	(06/24/2025, 05:27:07 PM)	FINISHED	172 / 172
