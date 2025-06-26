@@ -3,13 +3,34 @@
 #include <algorithm>
 #include <fstream> 
 
+// The single constructor implementation.
 Scheduler::Scheduler(int coreCount, SchedulingMode mode, int quantum)
     : coreCount(coreCount), quantumCount(quantum), mode(mode), running(false), isCreatingProcesses(false) {}
 
-Scheduler::Scheduler(int coreCount, SchedulingMode mode)
-    : coreCount(coreCount), mode(mode), running(false), isCreatingProcesses(false) {}
+Scheduler::~Scheduler() {
+    stop();
+}
 
-Scheduler::~Scheduler() {}
+void Scheduler::run() {
+    running = true;
+    for (int i = 0; i < coreCount; ++i) {
+        cpuThreads.emplace_back(&Scheduler::cpuWorker, this, i);
+    }
+}
+
+void Scheduler::stop() {
+    isCreatingProcesses = false;
+    if (processCreatorThread.joinable()) {
+        processCreatorThread.join();
+    }
+    
+    running = false;
+    cv.notify_all();
+
+    for (auto& t : cpuThreads) {
+        if(t.joinable()) t.join();
+    }
+}
 
 void Scheduler::addProcess(Process* process) {
     {
@@ -33,6 +54,8 @@ Process* Scheduler::findProcess(const std::string& name) {
 }
 
 void Scheduler::createProcess(const std::string& procName, int instMin, int instMax){
+    // Use a lock to safely get the current size for the new process ID
+    std::lock_guard<std::mutex> lock(allProcessMutex);
     Process* p = new Process(procName, allProcesses.size() + 1);
 
     InstructionGenerator gen;
@@ -43,80 +66,62 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
         p->addInstruction(instr);
     
     p->getScreenInfo().setTotalLine(instCount);
+    
+    // The addProcess method is thread-safe, so no extra lock needed here.
     this->addProcess(p);       
 }
 
 void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int instMax) {
     if (isCreatingProcesses) return;
-
     isCreatingProcesses = true;
     
     processCreatorThread = std::thread([this, batch_process_freq, instMin, instMax] {
-        int cycle = 0;
         int process_count = 0;
+        {
+             // Safely get the initial process count
+            std::lock_guard<std::mutex> lock(allProcessMutex);
+            process_count = allProcesses.size();
+        }
 
         while (isCreatingProcesses) {
-            if (cycle == 0) {
-                std::string name = "Dummy_Process" + std::to_string(process_count + 1);
-                this->createProcess(name, instMin, instMax);
-                ++process_count;
+            // Updated naming scheme to "Process<N>"
+            std::string name = "Process" + std::to_string(process_count + 1);
+            this->createProcess(name, instMin, instMax);
+            ++process_count;
+            
+            // Wait for the specified frequency
+            for (int i = 0; i < batch_process_freq && isCreatingProcesses; ++i) {
+                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-
-            ++cycle;
-            cycle %= batch_process_freq;
-            std::this_thread::sleep_for(std::chrono::milliseconds(300));
         }
     });
 }
 
 void Scheduler::createProcessesStop() {
     isCreatingProcesses = false;
-
     if (processCreatorThread.joinable()) {
         processCreatorThread.join();
     }
 }
 
-void Scheduler::run() {
-    running = true;
-    for (int i = 0; i < coreCount; ++i) {
-        cpuThreads.emplace_back(&Scheduler::cpuWorker, this, i);
-    }
-}
-
-void Scheduler::stop() {
-    {
-        std::lock_guard<std::mutex> lock(queueMutex);
-        running = false;
-    }
-
-    cv.notify_all(); // wake up all waiting threads
-
-    std::cout << "Stopping scheduler...\n";
-    for (auto& t : cpuThreads)
-        t.join();
-
-    cpuThreads.clear(); // clean up for possible restart
-}
-
 void Scheduler::cpuWorker(int coreID) {
-    while (true) {
+    while (running) {
         Process* current = nullptr;
-
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             cv.wait(lock, [this] {
                 return !processQueue.empty() || !running;
             });
 
-            if (!running && processQueue.empty())
-                return;
-
+            if (!running && processQueue.empty()) return;
+            if (processQueue.empty()) continue;
+            
             current = processQueue.front();
             processQueue.pop();
         }
 
         current->assignCore(coreID);
+        
         {
             std::lock_guard<std::mutex> lock(runningMutex);
             runningScreens.push_back(current->getScreenInfo());
@@ -125,55 +130,24 @@ void Scheduler::cpuWorker(int coreID) {
         if (mode == SchedulingMode::fcfs) {
             while (!current->isComplete() && running) {
                 current->executeNextInstruction();
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();
-                        break;
-                    }
-                }
             }
-        }
-
-        if (mode == SchedulingMode::rr) {
-            while (!current->isComplete() && running && processQueue.size() <= coreCount) 
-            {
+        } else if (mode == SchedulingMode::rr) {
+            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
                 current->executeNextInstruction();
-
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();
-                        break;
-                    }
-                }
-            }
-            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) 
-            {
-                current->executeNextInstruction();
-                
-                // ⬇️ Add this block to refresh the screen info every instruction
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();  // update line/core info
-                        break;
-                    }
-                }
             }
             if (!current->isComplete()) {
-                addProcess(current); // requeue
+                addProcess(current);
             }
         }
-
+        
         {
-            current->assignCore(-1);
+            current->assignCore(-1); // Mark as no longer on a core
             std::lock_guard<std::mutex> lock(runningMutex);
             auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
-                [&](const ScreenInfo& s) {
-                    return s.getName() == current->getScreenInfo().getName();
-                });
-            runningScreens.erase(it, runningScreens.end());
+                [&](const ScreenInfo& s) { return s.getName() == current->getScreenInfo().getName(); });
+            if (it != runningScreens.end()) {
+                runningScreens.erase(it, runningScreens.end());
+            }
         }
 
         if (current->isComplete()) {
@@ -188,7 +162,7 @@ void Scheduler::printScreen(const std::string& screenName) const {
         std::lock_guard<std::mutex> lock(runningMutex);
         for (const auto& screen : runningScreens) {
             if (screen.getName() == screenName) {
-                std::cout << "\n=== Running Processes " << screenName << " ===\n";
+                std::cout << "\n=== Running Process " << screenName << " ===\n";
                 screen.display();
                 return;
             }
@@ -219,13 +193,9 @@ void Scheduler::printScreen(const std::string& screenName) const {
             }
         }
     }
-
-
-    //std::cout << "Screen \"" << screenName << "\" not found in running or finished screens.\n";
 }
 
 void Scheduler::printScreenList() const {
-
     std::cout << "\n=== Queued Process ===\n";
     {
         std::lock_guard<std::mutex> lock(queueMutex);
