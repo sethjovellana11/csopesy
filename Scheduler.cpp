@@ -32,6 +32,10 @@ Process* Scheduler::findProcess(const std::string& name) {
     return nullptr;
 }
 
+void Scheduler::setDelay(int delay){
+    delayPerInstruction = delay;
+}
+
 void Scheduler::createProcess(const std::string& procName, int instMin, int instMax){
     Process* p = new Process(procName, allProcesses.size() + 1);
 
@@ -41,6 +45,8 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
 
     for (auto& instr : instructions)
         p->addInstruction(instr);
+
+    p->setDelay(delayPerInstruction);
     
     p->getScreenInfo().setTotalLine(instCount);
     this->addProcess(p);       
@@ -152,11 +158,10 @@ void Scheduler::cpuWorker(int coreID) {
             {
                 current->executeNextInstruction();
                 
-                // ⬇️ Add this block to refresh the screen info every instruction
                 std::lock_guard<std::mutex> lock(runningMutex);
                 for (auto& s : runningScreens) {
                     if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();  // update line/core info
+                        s = current->getScreenInfo();  
                         break;
                     }
                 }
@@ -225,6 +230,25 @@ void Scheduler::printScreen(const std::string& screenName) const {
 }
 
 void Scheduler::printScreenList() const {
+    int usedCores = 0;
+    
+    {
+        std::lock_guard<std::mutex> lock(runningMutex);
+        for (auto& screen : runningScreens) {
+            if (screen.getCoreID() != -1) {
+                usedCores++;
+            }
+        }
+    }
+
+    int availableCores = coreCount - usedCores;
+    float utilization = coreCount > 0 ? (static_cast<float>(usedCores) / coreCount) * 100.0f : 0.0f;
+
+    std::cout << "\n=== System Statistics ===\n";
+    std::cout << "Total CPU Cores      : " << coreCount << "\n";
+    std::cout << "Cores In Use         : " << usedCores << "\n";
+    std::cout << "Available Cores      : " << availableCores << "\n";
+    std::cout << "CPU Utilization      : " << utilization << "%\n";
 
     std::cout << "\n=== Queued Process ===\n";
     {
@@ -267,11 +291,31 @@ void Scheduler::printScreenList() const {
 }
 
 void Scheduler::writeScreenListToFile(const std::string& filename) const {
+    int usedCores = 0;
+    
+    {
+        std::lock_guard<std::mutex> lock(runningMutex);
+        for (auto& screen : runningScreens) {
+            if (screen.getCoreID() != -1) {
+                usedCores++;
+            }
+        }
+    }
+
+    int availableCores = coreCount - usedCores;
+    float utilization = coreCount > 0 ? (static_cast<float>(usedCores) / coreCount) * 100.0f : 0.0f;
+
     std::ofstream outFile(filename);
     if (!outFile.is_open()) {
         std::cerr << "Error: Could not open file " << filename << " for writing.\n";
         return;
     }
+
+    outFile << "\n=== System Statistics ===\n";
+    outFile << "Total CPU Cores      : " << coreCount << "\n";
+    outFile << "Cores In Use         : " << usedCores << "\n";
+    outFile << "Available Cores      : " << availableCores << "\n";
+    outFile << "CPU Utilization      : " << utilization << "%\n";
 
     outFile << "=== Queued Process ===\n";
     {

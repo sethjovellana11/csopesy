@@ -1,6 +1,8 @@
 #pragma once
 #include "ICommand.h"
 #include "Process.h"
+#include <sstream>
+#include <iostream>
 
 class AddCommand : public ICommand {
     std::string result;
@@ -17,8 +19,16 @@ public:
         int32_t val1 = vars.count(op1) ? vars[op1] : 0;
         int32_t val2 = vars.count(op2) ? vars[op2] : 0;
 
+        std::string timestamp = ScreenInfo::getCurrentTimestamp();
+        int coreID = process.getScreenInfo().getCoreID();
+
         vars[target] = val1 + val2;
         result = std::to_string(val1 + val2);
+
+        std::ostringstream oss;
+        oss << "(" << timestamp << ") Core:" << coreID << " \"" << "ADD " + target + " = " + op1 + " + " + op2 + " -> " + result << "\"";
+        
+        process.addLog(oss.str());
     }
 
     std::string toString() const override {

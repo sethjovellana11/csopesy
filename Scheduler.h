@@ -30,6 +30,7 @@ public:
     void createProcessesStop();
     void writeScreenListToFile(const std::string& filename) const;
     void printScreen(const std::string& screenName) const;
+    void setDelay(int delay);
     void run();
     void stop();
     void printScreenList() const;
@@ -50,6 +51,7 @@ private:
 
     int quantumCount;
     int coreCount;
+    int delayPerInstruction; 
     SchedulingMode mode;
     bool running;
     std::condition_variable cv;

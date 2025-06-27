@@ -8,6 +8,10 @@ Process::Process(const std::string& name, int id)
     : id(id), instructionCount(0), coreID(-1), screenInfo(name) {
 }
 
+void Process::setDelay(int ms) {
+    delayPerInstruction = ms;
+}
+
 void Process::assignCore(int coreID) {
     this->coreID = coreID;
     screenInfo.setCoreID(coreID);
@@ -53,8 +57,7 @@ void Process::executeNextInstruction() {
     instructionCount++;
     screenInfo.setCurrentLine(instructionCount);
 
-    // This delay was in the original code
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerInstruction));
 }
 
 bool Process::isComplete() const {

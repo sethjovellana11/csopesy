@@ -85,6 +85,7 @@ void Emulator::initialize() {
     }
     
     isInitialized = true;
+    scheduler->setDelay(delay_per_exec);
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
     std::thread([this]() { scheduler->run(); }).detach();
@@ -192,6 +193,7 @@ void Emulator::handleMainCommand(const std::string& input) {
         initialize();
     } else if (input.rfind("screen -s ", 0) == 0) {
         if (checkInitialized()) {
+            clearScreen();
             std::string name = input.substr(10);
             if (!name.empty()) {
                 Process* p = scheduler->findProcess(name);
@@ -213,6 +215,7 @@ void Emulator::handleMainCommand(const std::string& input) {
         } 
     } else if (input.rfind("screen -r ", 0) == 0) { // New command logic
         if (checkInitialized()) {
+            clearScreen();
             std::string name = input.substr(10);
             if (!name.empty()) {
                 printProcessInfo(name);

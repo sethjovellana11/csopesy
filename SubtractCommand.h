@@ -1,6 +1,9 @@
 #pragma once
 #include "ICommand.h"
 #include "Process.h"
+#include <sstream>
+#include <iostream>
+
 
 class SubtractCommand : public ICommand {
     std::string result;
@@ -19,6 +22,14 @@ public:
 
         vars[target] = val1 - val2;
         result = std::to_string(val1 - val2);
+
+        std::string timestamp = ScreenInfo::getCurrentTimestamp();
+        int coreID = process.getScreenInfo().getCoreID();
+
+        std::ostringstream oss;
+        oss << "(" << timestamp << ") Core:" << coreID << " \"" << "Subtract " + target + " = " + op1 + " - " + op2 + " -> " + result << "\"";
+        
+        process.addLog(oss.str());
     }
 
     std::string toString() const override {

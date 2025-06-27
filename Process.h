@@ -12,6 +12,7 @@ public:
     Process(const std::string& name, int id);
 
     void assignCore(int coreID);
+    void setDelay(int ms); 
     void addInstruction(std::shared_ptr<ICommand> instr);
     void executeNextInstruction();
     bool isComplete() const;
@@ -29,6 +30,7 @@ private:
     int id;
     int instructionCount;
     int coreID;
+    int delayPerInstruction = 50;
     ScreenInfo screenInfo;
     std::vector<std::shared_ptr<ICommand>> instructions;
     std::unordered_map<std::string, int32_t> variables;

@@ -1,6 +1,8 @@
 #pragma once
 #include "ICommand.h"
 #include "Process.h"
+#include <sstream>
+#include <iostream>
 
 class DeclareCommand : public ICommand {
     std::string var;
@@ -10,6 +12,14 @@ public:
 
     void execute(Process& process) override {
         process.getVariables()[var] = static_cast<int32_t>(value);
+
+        std::string timestamp = ScreenInfo::getCurrentTimestamp();
+        int coreID = process.getScreenInfo().getCoreID();
+
+        std::ostringstream oss;
+        oss << "(" << timestamp << ") Core:" << coreID << " \"" << "DECLARE " + var + " = " + std::to_string(value) << "\"";
+        
+        process.addLog(oss.str());
     }
 
     std::string toString() const override{

@@ -11,7 +11,7 @@ public:
     const std::string& getName() const;
 
     void setCoreID(int id);
-    int getCoreID();
+    int getCoreID() const;
 
     void setTotalLine(int line);
     int getTotalLine();

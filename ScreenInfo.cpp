@@ -39,7 +39,7 @@ void ScreenInfo::setCoreID(int id) {
     coreID = id;
 }
 
-int ScreenInfo::getCoreID() {
+int ScreenInfo::getCoreID() const{
     return coreID;
 }
 
