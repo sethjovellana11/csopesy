@@ -6,3 +6,6 @@
 
 # Names
 1. Gabriele Louie N. De Guzman
+2. Bryant Kimm Gonzales
+3. Reuben Seth Jovellana
+
