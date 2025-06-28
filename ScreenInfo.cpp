@@ -21,7 +21,7 @@ std::string ScreenInfo::getCurrentTimestamp() {
 void ScreenInfo::display() const {
     std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t\t"  
                 << ((currentLine == totalLine) ? "FINISHED" : ("CORE: " + std::to_string(coreID)+"  ")) << "\t"
-                << currentLine << " / " << totalLine << std::endl;
+                << currentLine << " / " << totalLine << "\n\n\n" << std::endl;
 }
 
 std::string ScreenInfo::toString() const {

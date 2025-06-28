@@ -1,25 +1,19 @@
 
 === System Statistics ===
 Total CPU Cores      : 4
-Cores In Use         : 3
-Available Cores      : 1
-CPU Utilization      : 75%
+Cores In Use         : 0
+Available Cores      : 4
+CPU Utilization      : 0%
 === Queued Process ===
 No queued process.
 
 === Running Process ===
-Process9	(06/27/2025, 08:27:47 PM)		CORE: 2  	147 / 196
-Process10	(06/27/2025, 08:27:57 PM)		CORE: 0  	86 / 122
-Process11	(06/27/2025, 08:28:06 PM)		CORE: 3  	7 / 149
+No processes are currently running.
 
 === Finished Process ===
-Process1	(06/27/2025, 08:26:32 PM)		FINISHED	141 / 141
-Process2	(06/27/2025, 08:26:42 PM)		FINISHED	185 / 185
-p1	(06/27/2025, 08:26:45 PM)		FINISHED	141 / 141
-Process3	(06/27/2025, 08:26:51 PM)		FINISHED	172 / 172
-Process4	(06/27/2025, 08:27:00 PM)		FINISHED	138 / 138
-Process5	(06/27/2025, 08:27:10 PM)		FINISHED	180 / 180
-Process6	(06/27/2025, 08:27:19 PM)		FINISHED	169 / 169
-Process7	(06/27/2025, 08:27:28 PM)		FINISHED	165 / 165
-Process8	(06/27/2025, 08:27:38 PM)		FINISHED	168 / 168
-p2	(06/27/2025, 08:27:43 PM)		FINISHED	185 / 185
+Process1	(06/28/2025, 03:22:01 PM)		FINISHED	141 / 141
+Process2	(06/28/2025, 03:22:10 PM)		FINISHED	185 / 185
+Process3	(06/28/2025, 03:22:19 PM)		FINISHED	172 / 172
+P1	(06/28/2025, 03:22:20 PM)		FINISHED	141 / 141
+Process4	(06/28/2025, 03:22:29 PM)		FINISHED	138 / 138
+Process5	(06/28/2025, 03:22:38 PM)		FINISHED	180 / 180

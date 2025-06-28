@@ -220,12 +220,19 @@ void Emulator::handleMainCommand(const std::string& input) {
             std::string name = input.substr(10);
             if (!name.empty()) {
                 Process* p = scheduler->findProcess(name);
-                if(p !=  nullptr)
-                currentScreen = name;
-                inScreen = true;
-                p->getScreenInfo().display();
+                if (p && p->isComplete()){
+                     std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
+                } 
+                else if(p !=  nullptr){
+                    currentScreen = name;
+                    inScreen = true;
+                    p->getScreenInfo().display();
+                }
+                else if (p == nullptr){
+                     std::cout << "Process " << name << " does not exist, please use screen -s <process name> to create a new process." << std::endl;
+                }
             } else {
-                std::cout << "Missing process name after 'screen -r', or process does not exist" << std::endl;
+                std::cout << "Missing process name after 'screen -r" << std::endl;
             }
         }
     } else if (input == "screen -ls") {
