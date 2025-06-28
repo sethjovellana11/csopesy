@@ -21,6 +21,7 @@ private:
     std::string currentScreen;
     std::unordered_map<std::string, Process*> activeProcesses;
     bool isInitialized;
+    bool shouldExit = false;
 
     // config variables
     int num_cpu, quantum_cycles, batch_process_freq, min_ins, max_ins, delay_per_exec;

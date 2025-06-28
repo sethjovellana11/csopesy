@@ -207,7 +207,8 @@ void Emulator::handleMainCommand(const std::string& input) {
                 } else if (p) {
                     currentScreen = name;
                     inScreen = true;
-                    showProcessSMI(name);
+                    p->getScreenInfo().display();
+                    //showProcessSMI(name);
                 }
             } else {
                 std::cout << "Missing process name after 'screen -s'" << std::endl;
@@ -218,9 +219,13 @@ void Emulator::handleMainCommand(const std::string& input) {
             clearScreen();
             std::string name = input.substr(10);
             if (!name.empty()) {
-                printProcessInfo(name);
+                Process* p = scheduler->findProcess(name);
+                if(p !=  nullptr)
+                currentScreen = name;
+                inScreen = true;
+                p->getScreenInfo().display();
             } else {
-                std::cout << "Missing process name after 'screen -r'" << std::endl;
+                std::cout << "Missing process name after 'screen -r', or process does not exist" << std::endl;
             }
         }
     } else if (input == "screen -ls") {
@@ -244,10 +249,8 @@ void Emulator::handleMainCommand(const std::string& input) {
     } else if (input == "clear") {
         clearScreen();
     } else if (input == "exit") {
-        std::cout << "exit command recognized. Exiting program." << std::endl;
-        if(scheduler) scheduler->stop();
-        if(marquee) marquee->stop();
-        exit(0);
+        std::cout << "Exiting emulator..." << std::endl;
+        shouldExit = true;
     } else if (input.empty()) {
          // Do nothing
     } else {
@@ -258,13 +261,13 @@ void Emulator::handleMainCommand(const std::string& input) {
 void Emulator::run() {
     std::string input;
     clearScreen();
-    while (true) {
+    while (!shouldExit) {
         if (inScreen) {
             std::cout << "root:\\> ";
             std::getline(std::cin, input);
             handleScreenCommand(input);
-        } else if(inMarquee) {
-             if (!marquee) {
+        } else if (inMarquee) {
+            if (!marquee) {
                 marquee = new Marquee("Hello World", 60, 10);
                 marquee->start();
             } else if (!marquee->isRunning()) {
@@ -280,4 +283,21 @@ void Emulator::run() {
             handleMainCommand(input);
         }
     }
+
+    if (scheduler) {
+        scheduler->createProcessesStop();
+        scheduler->stop();
+        delete scheduler;
+        scheduler = nullptr;
+    }
+
+    std::cout << "Scheduler Destroyed" << std::endl;
+
+    if (marquee) {
+        marquee->stop();
+        delete marquee;
+        marquee = nullptr;
+    }
+
+    std::cout << "Goodbye.\n";
 }

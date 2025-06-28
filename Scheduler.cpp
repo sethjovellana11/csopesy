@@ -9,7 +9,10 @@ Scheduler::Scheduler(int coreCount, SchedulingMode mode, int quantum)
 Scheduler::Scheduler(int coreCount, SchedulingMode mode)
     : coreCount(coreCount), mode(mode), running(false), isCreatingProcesses(false) {}
 
-Scheduler::~Scheduler() {}
+Scheduler::~Scheduler() {
+    stop();
+    cv.notify_all();
+}
 
 void Scheduler::addProcess(Process* process) {
     {
@@ -96,13 +99,16 @@ void Scheduler::stop() {
         running = false;
     }
 
-    cv.notify_all(); // wake up all waiting threads
+    std::cout << "[Scheduler] Notifying all CPU workers to exit..." << std::endl;
+    cv.notify_all();
 
-    std::cout << "Stopping scheduler...\n";
-    for (auto& t : cpuThreads)
+    for (auto& t : cpuThreads) {
+        std::cout << "[Scheduler] Joining CPU thread..." << std::endl;
         t.join();
+    }
 
-    cpuThreads.clear(); // clean up for possible restart
+    std::cout << "[Scheduler] All CPU threads stopped." << std::endl;
+    cpuThreads.clear();
 }
 
 void Scheduler::cpuWorker(int coreID) {
@@ -111,12 +117,10 @@ void Scheduler::cpuWorker(int coreID) {
 
         {
             std::unique_lock<std::mutex> lock(queueMutex);
-            cv.wait(lock, [this] {
-                return !processQueue.empty() || !running;
-            });
-
-            if (!running && processQueue.empty())
-                return;
+            while (processQueue.empty()) {
+                if (!running) return;
+                cv.wait(lock);
+            }
 
             current = processQueue.front();
             processQueue.pop();
@@ -166,7 +170,7 @@ void Scheduler::cpuWorker(int coreID) {
                     }
                 }
             }
-            if (!current->isComplete()) {
+            if (!current->isComplete() && running) {
                 addProcess(current); // requeue
             }
         }
