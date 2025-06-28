@@ -33,6 +33,7 @@ public:
     void setDelay(int delay);
     void run();
     void stop();
+    bool getIsCreatingProcesses() const;
     void printScreenList() const;
 
 private:
@@ -49,6 +50,7 @@ private:
     mutable std::mutex runningMutex;
     mutable std::mutex allProcessMutex;
 
+    int process_count = 0;
     int quantumCount;
     int coreCount;
     int delayPerInstruction; 
@@ -57,5 +59,5 @@ private:
     std::condition_variable cv;
 
     std::thread processCreatorThread;
-    bool isCreatingProcesses;
+    bool isCreatingProcesses = false;
 };

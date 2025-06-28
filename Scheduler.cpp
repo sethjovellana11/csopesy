@@ -39,6 +39,10 @@ void Scheduler::setDelay(int delay){
     delayPerInstruction = delay;
 }
 
+bool Scheduler::getIsCreatingProcesses() const{
+    return isCreatingProcesses;
+}
+
 void Scheduler::createProcess(const std::string& procName, int instMin, int instMax){
     Process* p = new Process(procName, allProcesses.size() + 1);
 
@@ -62,7 +66,6 @@ void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int in
     
     processCreatorThread = std::thread([this, batch_process_freq, instMin, instMax] {
         int cycle = 0;
-        int process_count = 0;
 
         while (isCreatingProcesses) {
             if (cycle == 0) {

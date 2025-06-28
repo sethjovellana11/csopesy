@@ -244,8 +244,13 @@ void Emulator::handleMainCommand(const std::string& input) {
         } 
     } else if (input == "scheduler-start") {
         if (checkInitialized()) {
-            scheduler->createProcessesStart(batch_process_freq, min_ins, max_ins);
-            std::cout << "Started Processing" << std::endl;
+            if(!scheduler->getIsCreatingProcesses()){
+                scheduler->createProcessesStart(batch_process_freq, min_ins, max_ins);
+                std::cout << "Started Processing" << std::endl;
+            }
+            else{
+                std::cout << "Scheduler is already running, please use 'scheduler-stop' to stop the scheduler first" << std::endl;
+            }
         }
     } else if (input == "scheduler-stop") {
         if (checkInitialized()){
