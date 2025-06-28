@@ -35,7 +35,6 @@ private:
     std::vector<std::shared_ptr<ICommand>> instructions;
     std::unordered_map<std::string, int32_t> variables;
 
-    // A thread-safe buffer to store logs from PRINT commands.
     std::vector<std::string> print_logs;
     mutable std::mutex log_mutex;
 };

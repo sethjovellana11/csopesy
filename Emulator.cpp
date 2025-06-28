@@ -208,6 +208,7 @@ void Emulator::handleMainCommand(const std::string& input) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
+                    std::cout << std::endl;
                     //showProcessSMI(name);
                 }
             } else {
@@ -227,6 +228,7 @@ void Emulator::handleMainCommand(const std::string& input) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
+                    std::cout << std::endl;
                 }
                 else if (p == nullptr){
                      std::cout << "Process " << name << " does not exist, please use screen -s <process name> to create a new process." << std::endl;

@@ -5,7 +5,6 @@
 #include <memory>
 #include <variant>
 
-// Forward declaration of Process class to avoid circular dependency
 class Process;
 
 class ICommand {
