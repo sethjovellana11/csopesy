@@ -1,7 +1,9 @@
 #include "Scheduler.h"
+#include "MemoryManager.h"
 #include <iostream>
 #include <algorithm>
 #include <fstream> 
+#include <filesystem>
 
 Scheduler::Scheduler(int coreCount, SchedulingMode mode, int quantum)
     : coreCount(coreCount), quantumCount(quantum), mode(mode), running(false), isCreatingProcesses(false) {}
@@ -115,6 +117,8 @@ void Scheduler::stop() {
 }
 
 void Scheduler::cpuWorker(int coreID) {
+    int cycleCounter = 0;
+
     while (true) {
         Process* current = nullptr;
 
@@ -127,6 +131,14 @@ void Scheduler::cpuWorker(int coreID) {
 
             current = processQueue.front();
             processQueue.pop();
+        }
+
+        if (!current->getIsAllocated()) {
+            if (!memManager.allocate(current->getID())) {
+                addProcess(current);  // Retry later
+                continue;
+            }
+            current->setIsAllocated(true);
         }
 
         current->assignCore(coreID);
@@ -149,8 +161,7 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (mode == SchedulingMode::rr) {
-            while (!current->isComplete() && running && processQueue.size() <= coreCount) 
-            {
+            while (!current->isComplete() && running && processQueue.size() <= coreCount) {
                 current->executeNextInstruction();
 
                 std::lock_guard<std::mutex> lock(runningMutex);
@@ -161,25 +172,45 @@ void Scheduler::cpuWorker(int coreID) {
                     }
                 }
             }
-            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) 
-            {
+
+            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
                 current->executeNextInstruction();
-                
+
                 std::lock_guard<std::mutex> lock(runningMutex);
                 for (auto& s : runningScreens) {
                     if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();  
+                        s = current->getScreenInfo();
                         break;
                     }
                 }
+
+                // Logging memory status every quantumCount instructions
+                int snapshotCycle = ++cycleCounter;
+                
+                if (!std::filesystem::exists("Memory_Stamp")) {
+                        std::filesystem::create_directory("Memory_Stamp");
+                }
+
+                if (cycleCounter % quantumCount == 0) {
+                    std::string filePath = "Memory_Stamp/memory_stamp_" + std::to_string(snapshotCycle) + ".txt";
+                    std::ofstream out(filePath);
+                    out << "Timestamp: " << ScreenInfo::getCurrentTimestamp() << "\n";
+                    out << "Quantum Cycle: " << snapshotCycle << "\n";
+                    out << "Processes in memory: " << memManager.processesInMemory() << "\n";
+                    out << "External fragmentation: " << memManager.getExternalFragmentation() << " KB\n";
+                    out << "Memory Map:\n" << memManager.asciiMemoryMap() << "\n";
+                    out.close();
+                }
             }
+
             if (!current->isComplete() && running) {
-                addProcess(current); // requeue
+                addProcess(current); // Requeue if not done
             }
         }
 
+        // Unassign core
+        current->assignCore(-1);
         {
-            current->assignCore(-1);
             std::lock_guard<std::mutex> lock(runningMutex);
             auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
                 [&](const ScreenInfo& s) {
@@ -189,6 +220,8 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (current->isComplete()) {
+            memManager.deallocate(current->getID()); 
+            current->setIsAllocated(false);
             std::lock_guard<std::mutex> lock(finishedMutex);
             finishedScreens.push_back(current->getScreenInfo());
         }

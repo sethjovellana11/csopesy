@@ -1,10 +1,12 @@
 #pragma once
 #include "Process.h"
+#include "MemoryManager.h"
 #include "InstructionGenerator.h"
 #include <queue>
 #include <mutex>
 #include <vector>
 #include <thread>
+#include <filesystem>
 #include <condition_variable>
 #include <memory>
 
@@ -37,6 +39,9 @@ public:
     void printScreenList() const;
 
 private:
+    MemoryManager memManager;
+    int cycleCounter = 0;
+
     void cpuWorker(int coreID);
 
     std::queue<Process*> processQueue;

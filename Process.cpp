@@ -12,6 +12,14 @@ void Process::setDelay(int ms) {
     delayPerInstruction = ms;
 }
 
+void Process::setIsAllocated(bool isAlloc){
+    memoryAllocated = isAlloc;
+}
+
+bool Process:: getIsAllocated(){
+    return memoryAllocated;
+}
+
 void Process::assignCore(int coreID) {
     this->coreID = coreID;
     screenInfo.setCoreID(coreID);

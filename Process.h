@@ -16,6 +16,8 @@ public:
     void addInstruction(std::shared_ptr<ICommand> instr);
     void executeNextInstruction();
     bool isComplete() const;
+    bool getIsAllocated();
+    void setIsAllocated(bool isAllocated);
     int getID() const;
     ScreenInfo& getScreenInfo();
     void updateScreenInfo();
@@ -31,6 +33,8 @@ private:
     int instructionCount;
     int coreID;
     int delayPerInstruction = 50;
+    bool memoryAllocated = false;
+    
     ScreenInfo screenInfo;
     std::vector<std::shared_ptr<ICommand>> instructions;
     std::unordered_map<std::string, int32_t> variables;
