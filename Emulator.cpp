@@ -74,6 +74,9 @@ void Emulator::initialize() {
         else if (key == "min-ins") this->min_ins = std::stoi(value);
         else if (key == "max-ins") this->max_ins = std::stoi(value);
         else if (key == "delays-per-exec") this->delay_per_exec = std::stoi(value);
+        else if (key == "max-overall-mem") this->max_overall_mem = std::stoi(value);
+        else if (key == "mem-per-frame") this->mem_per_frame = std::stoi(value);
+        else if (key == "mem-per-proc") this->mem_per_proc = std::stoi(value);
     }
 
     if(scheduler_type == "rr"){
@@ -86,6 +89,7 @@ void Emulator::initialize() {
     
     isInitialized = true;
     scheduler->setDelay(delay_per_exec);
+    scheduler->init_mem_manager(this->max_overall_mem, this->mem_per_frame, this->mem_per_proc);
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
     std::thread([this]() { scheduler->run(); }).detach();

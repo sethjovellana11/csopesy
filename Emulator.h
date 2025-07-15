@@ -24,7 +24,8 @@ private:
     bool shouldExit = false;
 
     // config variables
-    int num_cpu, quantum_cycles, batch_process_freq, min_ins, max_ins, delay_per_exec;
+    int num_cpu, quantum_cycles, batch_process_freq, min_ins, max_ins, delay_per_exec,
+        max_overall_mem, mem_per_frame, mem_per_proc;
     std::string scheduler_type;
     
     // External objects

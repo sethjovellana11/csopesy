@@ -2,19 +2,22 @@
 #include <sstream>
 #include <algorithm>
 
-MemoryManager::MemoryManager() {
-    memory = std::vector<int>(FRAMES, -1);
+MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int mem_per_proc) 
+    : total_memory(max_overall_mem), frame_size(mem_per_frame), mem_per_proc(mem_per_proc) {
+    this->frames = this->total_memory / this->frame_size;
+    this->frames_per_proc = this->mem_per_proc / frame_size;
+    memory = std::vector<int>(frames, -1);
 }
 
 bool MemoryManager::allocate(int processID) {
     int freeCount = 0, startIdx = -1;
 
-    for (int i = 0; i < FRAMES; ++i) {
+    for (int i = 0; i < frames; ++i) {
         if (memory[i] == -1) {
             if (freeCount == 0) startIdx = i;
             freeCount++;
-            if (freeCount == FRAMES_PER_PROC) {
-                for (int j = startIdx; j < startIdx + FRAMES_PER_PROC; ++j)
+            if (freeCount == frames_per_proc) {
+                for (int j = startIdx; j < startIdx + frames_per_proc; ++j)
                     memory[j] = processID;
                 return true;
             }
@@ -27,7 +30,7 @@ bool MemoryManager::allocate(int processID) {
 }
 
 void MemoryManager::deallocate(int processID) {
-    for (int i = 0; i < FRAMES; ++i) {
+    for (int i = 0; i < frames; ++i) {
         if (memory[i] == processID) memory[i] = -1;
     }
 }
@@ -35,20 +38,20 @@ void MemoryManager::deallocate(int processID) {
 int MemoryManager::getExternalFragmentation() const {
     int count = 0, freeCount = 0;
 
-    for (int i = 0; i < FRAMES; ++i) {
+    for (int i = 0; i < frames; ++i) {
         if (memory[i] == -1) {
             freeCount++;
         } else {
-            if (freeCount > 0 && freeCount < FRAMES_PER_PROC)
+            if (freeCount > 0 && freeCount < frames_per_proc)
                 count += freeCount;
             freeCount = 0;
         }
     }
 
-    if (freeCount > 0 && freeCount < FRAMES_PER_PROC)
+    if (freeCount > 0 && freeCount < frames_per_proc)
         count += freeCount;
 
-    return (count * FRAME_SIZE) / 1024; // Return in KB
+    return (count * frame_size) / 1024; // Return in KB
 }
 
 std::string MemoryManager::asciiMemoryMap() const {
@@ -62,7 +65,7 @@ std::string MemoryManager::asciiMemoryMap() const {
     int currentPID = memory[0];
     int startIdx = 0;
 
-    for (int i = 1; i < FRAMES; ++i) {
+    for (int i = 1; i < frames; ++i) {
         if (memory[i] != currentPID) {
             if (currentPID != -1) {
                 blocks.push_back({currentPID, startIdx, i - startIdx});
@@ -74,7 +77,7 @@ std::string MemoryManager::asciiMemoryMap() const {
 
     // Add last block if needed
     if (currentPID != -1) {
-        blocks.push_back({currentPID, startIdx, FRAMES - startIdx});
+        blocks.push_back({currentPID, startIdx, frames - startIdx});
     }
 
     // Convert to address-based blocks
@@ -86,8 +89,8 @@ std::string MemoryManager::asciiMemoryMap() const {
     std::vector<DisplayBlock> display;
 
     for (const auto& b : blocks) {
-        int startAddr = b.startFrame * FRAME_SIZE;
-        int endAddr = startAddr + b.length * FRAME_SIZE;
+        int startAddr = b.startFrame * frame_size;
+        int endAddr = startAddr + b.length * frame_size;
         display.push_back({b.pid, startAddr, endAddr});
     }
 
@@ -97,8 +100,8 @@ std::string MemoryManager::asciiMemoryMap() const {
     });
 
     std::ostringstream oss;
-    oss << "--- end --- = " << TOTAL_MEMORY << "\n";
-    oss << TOTAL_MEMORY << "\n";
+    oss << "--- end --- = " << total_memory << "\n";
+    oss << total_memory << "\n";
 
     for (const auto& d : display) {
         oss << "P" << d.pid << "\n";

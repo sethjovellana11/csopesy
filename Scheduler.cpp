@@ -16,6 +16,10 @@ Scheduler::~Scheduler() {
     cv.notify_all();
 }
 
+void Scheduler::init_mem_manager(int max_overall_mem, int mem_per_frame, int mem_per_proc) {
+    this->memManager = MemoryManager(max_overall_mem, mem_per_frame, mem_per_proc);
+}
+
 void Scheduler::addProcess(Process* process) {
     {
         std::lock_guard<std::mutex> lock(queueMutex);
