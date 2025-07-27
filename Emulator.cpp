@@ -276,6 +276,10 @@ void Emulator::handleMainCommand(const std::string& input) {
     if (checkInitialized()) 
         clearScreen();
         scheduler->printVMStats();
+    }else if (input == "process-smi") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printProcessSmi();
     }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+#include <iostream>
 #include <cmath>
 
 MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc) 
@@ -11,6 +12,8 @@ MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int min_mem
     memory = std::vector<int>(frames, -1);
 }
 
+//Used in regular paging
+/*
 bool MemoryManager::allocate(int processID) {
     int freeCount = 0, startIdx = -1;
 
@@ -30,6 +33,7 @@ bool MemoryManager::allocate(int processID) {
 
     return false;
 }
+*/
 
 void MemoryManager::deallocate(int processID) {
     for (int i = 0; i < frames; ++i) {
@@ -53,6 +57,73 @@ void MemoryManager::deallocate(int processID) {
     frameQueue = std::move(newQueue);
 }
 
+bool MemoryManager::accessPage(int processID, int pageNum) {
+    // 1. Check if page is already in memory (page hit)
+    if (isPageInMemory(processID, pageNum)) {
+        return true;
+    }
+
+    // 2. Page fault
+    totalPagedIn++;
+
+    // 3. Try to find a free frame
+    int freeFrame = -1;
+    for (int i = 0; i < memory.size(); ++i) {
+        if (memory[i] == -1) {
+            freeFrame = i;
+            break;
+        }
+    }
+
+    // 4. If no free frame, evict using FIFO
+    if (freeFrame == -1 && !frameQueue.empty()) {
+        int victimFrame = frameQueue.front();
+        frameQueue.pop();
+
+        int victimPID = memory[victimFrame];
+        int victimPage = -1;
+
+        // Locate the evicted page
+        for (const auto& [vp, pf] : pageTable[victimPID]) {
+            if (pf == victimFrame) {
+                victimPage = vp;
+                break;
+            }
+        }
+
+        // Remove mappings
+        if (victimPage != -1) {
+            pageTable[victimPID].erase(victimPage);
+            pagesInMemory[victimPID].erase(victimPage);
+            backingStore[victimPID].insert(victimPage); // Simulate backing store
+        }
+
+        totalPagedOut++;
+
+        freeFrame = victimFrame; // Now available
+    }
+
+    // 5. Load page into selected frame
+    if (freeFrame != -1) {
+        memory[freeFrame] = processID;
+        pageTable[processID][pageNum] = freeFrame;
+        pagesInMemory[processID].insert(pageNum);
+        frameQueue.push(freeFrame);
+
+        // Simulate loading from backing store
+        if (!isPageInBackingStore(processID, pageNum)) {
+            backingStore[processID].insert(pageNum);
+        }
+
+        return false; // page fault handled
+    }
+
+    // Should not reach here
+    std::cout << "MASSIVE ERROR" << std::endl;
+    return false;
+}
+
+/*
 bool MemoryManager::accessPage(int processID, int pageNum) {
     // Check if page is already loaded
     if (pageTable[processID].count(pageNum)) {
@@ -106,6 +177,7 @@ bool MemoryManager::accessPage(int processID, int pageNum) {
 
     return true;
 }
+*/
 
 bool MemoryManager::isPageInMemory(int processID, int pageNum) const {
     auto it = pageTable.find(processID);

@@ -142,6 +142,8 @@ void Scheduler::cpuWorker(int coreID) {
             processQueue.pop();
         }
 
+        // Used for regular paging but not for demand paging
+        /*
         if (!current->getIsAllocated()) {
             if (!memManager.allocate(current->getID())) {
                 addProcess(current);  // Retry later
@@ -149,6 +151,7 @@ void Scheduler::cpuWorker(int coreID) {
             }
             current->setIsAllocated(true);
         }
+        */
 
         current->assignCore(coreID);
         {
@@ -159,9 +162,9 @@ void Scheduler::cpuWorker(int coreID) {
         if (mode == SchedulingMode::fcfs) {
             while (!current->isComplete() && running) {
                 int page = current->getCurrentPage();
-                memManager.accessPage(current->getID(), page);  // Demand paging handled here
-                
-                if (!memManager.accessPage(current->getID(), page)) {
+
+                bool success = memManager.accessPage(current->getID(), page);
+                if (!success) {
                     std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
                 }
 
@@ -184,7 +187,8 @@ void Scheduler::cpuWorker(int coreID) {
             for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
                 int page = current->getCurrentPage();
 
-                if (!memManager.accessPage(current->getID(), page)) {
+                bool success = memManager.accessPage(current->getID(), page);
+                if (!success) {
                     std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
                 }
 
