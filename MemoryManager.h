@@ -1,4 +1,5 @@
 #pragma once
+#include "Process.h"
 #include <vector>
 #include <string>
 #include <map>
@@ -29,8 +30,10 @@ private:
     // Tracks which process has which pages in memory
     std::map<int, std::set<int>> pagesInMemory;
 
-    // Which pages are "stored" in backing store
+    // Which pages are stored in backing store
     std::map<int, std::set<int>> backingStore;
+
+    std::unordered_map<int, Process*> processRegistry;
 
 public:
     MemoryManager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc);
@@ -51,6 +54,10 @@ public:
 
     int calculatePagesRequired(int memoryRequired) const;
     int randomMemoryForProcess() const;
+
+    void registerProcess(Process* process);
+    void unregisterProcess(int pid);
+    bool isProcessInRegistry(int processID) const;
 
     //VMSTATS
     size_t getTotalMemory() const;

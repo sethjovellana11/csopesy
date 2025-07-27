@@ -64,8 +64,9 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
     int memSize = memManager.randomMemoryForProcess(); 
     int pages = memManager.calculatePagesRequired(memSize); 
     p->setPagesRequired(pages);
-    
+    p->setMemory(memSize);
     p->getScreenInfo().setTotalLine(instCount);
+    p->getScreenInfo().setTotalMem(memSize);
     this->addProcess(p);       
 }
 
@@ -188,6 +189,13 @@ void Scheduler::cpuWorker(int coreID) {
                 int page = current->getCurrentPage();
 
                 bool success = memManager.accessPage(current->getID(), page);
+
+                if(!memManager.isProcessInRegistry(current->getID()))
+                {
+                    //std::cout << "Process: " << current->getID() << " with memory per page " << current->getMemPerPage() << " Added\n"; 
+                    memManager.registerProcess(current);
+                }
+
                 if (!success) {
                     std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
                 }
@@ -239,6 +247,7 @@ void Scheduler::cpuWorker(int coreID) {
 
         if (current->isComplete()) {
             memManager.deallocate(current->getID());
+            memManager.unregisterProcess(current->getID());
             current->setIsAllocated(false);
             std::lock_guard<std::mutex> lock(finishedMutex);
             finishedScreens.push_back(current->getScreenInfo());
@@ -308,7 +317,7 @@ void Scheduler::printProcessSmi() const{
     std::cout << "Cores In Use           : " << usedCores << "\n";
     std::cout << "Available Cores        : " << availableCores << "\n";
     std::cout << "CPU Utilization        : " << utilization << "%\n";
-    std::cout << "Memory Usage           : " << memManager.getUsedMemory() << " kb " << "/ " << memManager.getTotalMemory() << " kb %\n";
+    std::cout << "Memory Usage           : " << memManager.getUsedMemory() << " kb " << "/ " << memManager.getTotalMemory() << " kb\n";
     std::cout << "Memory Utilization     : " << memoryutil << "%\n";
 
     std::cout << "\n=== Running Process and Memory ===\n";
@@ -318,7 +327,7 @@ void Scheduler::printProcessSmi() const{
             std::cout << "No process are currently running.\n";
         } else {
             for (const auto& screen : runningScreens) {
-                screen.display();
+                screen.displaySmi();
             }
         }
     }

@@ -30,11 +30,14 @@ public:
 
     // Demand Paging
     int getCurrentPage() const;                         
-    static const int INSTRUCTIONS_PER_PAGE = 4; 
 
     void incrementCurrentPage();
     void setPagesRequired(int pages) { pagesRequired = pages; }
     int getPagesRequired() const { return pagesRequired; }
+
+    void setMemory(int mem) { memory = mem; memPerPage = static_cast<double>(memory) / pagesRequired; }
+    int getMemory() const { return memory; }
+    int getMemPerPage() const { return memPerPage; }
 
 private:
     int id;
@@ -42,6 +45,8 @@ private:
     int coreID;
     int pagesRequired;
     int currentPage;
+    int memory;
+    int memPerPage;
     int delayPerInstruction = 50;
     bool memoryAllocated = false;
     

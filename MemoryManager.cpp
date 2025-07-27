@@ -123,6 +123,7 @@ bool MemoryManager::accessPage(int processID, int pageNum) {
     return false;
 }
 
+//old implementation
 /*
 bool MemoryManager::accessPage(int processID, int pageNum) {
     // Check if page is already loaded
@@ -238,6 +239,8 @@ bool MemoryManager::loadPageFromBackingStore(int processID, int pageNum) {
     return true;
 }
 
+// For paging
+/*
 int MemoryManager::getExternalFragmentation() const {
     int count = 0, freeCount = 0;
 
@@ -256,6 +259,7 @@ int MemoryManager::getExternalFragmentation() const {
 
     return (count * frame_size) / 1024; // Return in KB
 }
+
 
 std::string MemoryManager::asciiMemoryMap() const {
     struct Block {
@@ -314,6 +318,7 @@ std::string MemoryManager::asciiMemoryMap() const {
     oss << "--- start --- = 0\n";
     return oss.str();
 }
+*/
 
 int MemoryManager::processesInMemory() const {
     std::map<int, bool> seen;
@@ -340,17 +345,39 @@ size_t MemoryManager::getTotalMemory() const {
 }
 
 size_t MemoryManager::getUsedMemory() const {
-    return total_memory - getFreeMemory();
+    size_t totalUsedMemory = 0;
+
+    for (int pid : memory) {
+        if (pid != -1) {
+            auto it = processRegistry.find(pid);
+            if (it != processRegistry.end() && it->second != nullptr) {
+                totalUsedMemory += it->second->getMemPerPage();
+            }
+        }
+    }
+
+    return totalUsedMemory;
 }
 
 size_t MemoryManager::getFreeMemory() const {
-    int freeCount = 0;
-    for (int pid : memory) {
-        if (pid == -1) {
-            ++freeCount;
-        }
-    }
-    return static_cast<size_t>(freeCount) * frame_size;
+    return total_memory - getUsedMemory();
+}
+
+void MemoryManager::registerProcess(Process* process) {
+    processRegistry[process->getID()] = process;
+}
+
+void MemoryManager::unregisterProcess(int pid) {
+    processRegistry.erase(pid);
+}
+
+bool MemoryManager::isProcessInRegistry(int processID) const {
+    auto it = processRegistry.find(processID);
+
+    if (it == processRegistry.end()) 
+        return false;
+    
+    return true;
 }
 
 int MemoryManager::getPageIns() const {
