@@ -16,8 +16,8 @@ Scheduler::~Scheduler() {
     cv.notify_all();
 }
 
-void Scheduler::init_mem_manager(int max_overall_mem, int mem_per_frame, int mem_per_proc) {
-    this->memManager = MemoryManager(max_overall_mem, mem_per_frame, mem_per_proc);
+void Scheduler::init_mem_manager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc) {
+    this->memManager = MemoryManager(max_overall_mem, mem_per_frame, min_mem_per_proc, max_mem_per_proc);
 }
 
 void Scheduler::addProcess(Process* process) {
@@ -60,6 +60,10 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
         p->addInstruction(instr);
 
     p->setDelay(delayPerInstruction);
+
+    int memSize = memManager.randomMemoryForProcess(); 
+    int pages = memManager.calculatePagesRequired(memSize); 
+    p->setPagesRequired(pages);
     
     p->getScreenInfo().setTotalLine(instCount);
     this->addProcess(p);       
@@ -129,6 +133,7 @@ void Scheduler::cpuWorker(int coreID) {
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             while (processQueue.empty()) {
+                idleTicks++;
                 if (!running) return;
                 cv.wait(lock);
             }
@@ -153,66 +158,71 @@ void Scheduler::cpuWorker(int coreID) {
 
         if (mode == SchedulingMode::fcfs) {
             while (!current->isComplete() && running) {
+                int page = current->getCurrentPage();
+                memManager.accessPage(current->getID(), page);  // Demand paging handled here
+                
+                if (!memManager.accessPage(current->getID(), page)) {
+                    std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
+                }
+
                 current->executeNextInstruction();
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();
-                        break;
+                activeTicks++;
+
+                {
+                    std::lock_guard<std::mutex> lock(runningMutex);
+                    for (auto& s : runningScreens) {
+                        if (s.getName() == current->getScreenInfo().getName()) {
+                            s = current->getScreenInfo();
+                            break;
+                        }
                     }
                 }
             }
         }
 
         if (mode == SchedulingMode::rr) {
-            while (!current->isComplete() && running && processQueue.size() <= coreCount) {
-                current->executeNextInstruction();
-
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();
-                        break;
-                    }
-                }
-            }
-
             for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
-                current->executeNextInstruction();
+                int page = current->getCurrentPage();
 
-                std::lock_guard<std::mutex> lock(runningMutex);
-                for (auto& s : runningScreens) {
-                    if (s.getName() == current->getScreenInfo().getName()) {
-                        s = current->getScreenInfo();
-                        break;
+                if (!memManager.accessPage(current->getID(), page)) {
+                    std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
+                }
+
+                current->executeNextInstruction();
+                activeTicks++;
+                {
+                    std::lock_guard<std::mutex> lock(runningMutex);
+                    for (auto& s : runningScreens) {
+                        if (s.getName() == current->getScreenInfo().getName()) {
+                            s = current->getScreenInfo();
+                            break;
+                        }
                     }
                 }
 
-                // Logging memory status every quantumCount instructions
-                int snapshotCycle = ++cycleCounter;
-                
-                if (!std::filesystem::exists("Memory_Stamp")) {
-                        std::filesystem::create_directory("Memory_Stamp");
-                }
+                // Snapshot every quantum cycle
+                /*
+                if (++cycleCounter % quantumCount == 0) {
+                    std::string dir = "Memory_Stamp";
+                    std::filesystem::create_directory(dir);
 
-                if (cycleCounter % quantumCount == 0) {
-                    std::string filePath = "Memory_Stamp/memory_stamp_" + std::to_string(snapshotCycle) + ".txt";
+                    std::string filePath = dir + "/memory_stamp_" + std::to_string(cycleCounter) + ".txt";
                     std::ofstream out(filePath);
                     out << "Timestamp: " << ScreenInfo::getCurrentTimestamp() << "\n";
-                    out << "Quantum Cycle: " << snapshotCycle << "\n";
+                    out << "Quantum Cycle: " << cycleCounter << "\n";
                     out << "Processes in memory: " << memManager.processesInMemory() << "\n";
                     out << "External fragmentation: " << memManager.getExternalFragmentation() << " KB\n";
                     out << "Memory Map:\n" << memManager.asciiMemoryMap() << "\n";
                     out.close();
                 }
+                */
             }
 
             if (!current->isComplete() && running) {
-                addProcess(current); // Requeue if not done
+                addProcess(current);
             }
         }
 
-        // Unassign core
         current->assignCore(-1);
         {
             std::lock_guard<std::mutex> lock(runningMutex);
@@ -224,7 +234,7 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (current->isComplete()) {
-            memManager.deallocate(current->getID()); 
+            memManager.deallocate(current->getID());
             current->setIsAllocated(false);
             std::lock_guard<std::mutex> lock(finishedMutex);
             finishedScreens.push_back(current->getScreenInfo());
@@ -271,6 +281,44 @@ void Scheduler::printScreen(const std::string& screenName) const {
 
 
     //std::cout << "Screen \"" << screenName << "\" not found in running or finished screens.\n";
+}
+
+void Scheduler::printProcessSmi() const{
+    int usedCores = 0;
+    
+    {
+        std::lock_guard<std::mutex> lock(runningMutex);
+        for (auto& screen : runningScreens) {
+            if (screen.getCoreID() != -1) {
+                usedCores++;
+            }
+        }
+    }
+
+    int availableCores = coreCount - usedCores;
+    float utilization = coreCount > 0 ? (static_cast<float>(usedCores) / coreCount) * 100.0f : 0.0f;
+    float memoryutil = memManager.getTotalMemory() > 0 ? (static_cast<float>(memManager.getUsedMemory()) / memManager.getTotalMemory()) * 100.0f : 0.0f;
+
+    std::cout << "\n=== System Statistics ===\n";
+    std::cout << "Total CPU Cores        : " << coreCount << "\n";
+    std::cout << "Cores In Use           : " << usedCores << "\n";
+    std::cout << "Available Cores        : " << availableCores << "\n";
+    std::cout << "CPU Utilization        : " << utilization << "%\n";
+    std::cout << "Memory Usage           : " << memManager.getUsedMemory() << " kb " << "/ " << memManager.getTotalMemory() << " kb %\n";
+    std::cout << "Memory Utilization     : " << memoryutil << "%\n";
+
+    std::cout << "\n=== Running Process and Memory ===\n";
+    {
+        std::lock_guard<std::mutex> lock(runningMutex);
+        if (runningScreens.empty()) {
+            std::cout << "No process are currently running.\n";
+        } else {
+            for (const auto& screen : runningScreens) {
+                screen.display();
+            }
+        }
+    }
+
 }
 
 void Scheduler::printScreenList() const {
@@ -332,6 +380,21 @@ void Scheduler::printScreenList() const {
             }
         }
     }
+}
+
+void Scheduler::printVMStats() const {
+    std::cout << "\n=== VM STATISTICS ===\n";
+    std::cout << "Total memory: " << memManager.getTotalMemory() << " bytes\n";
+    std::cout << "Used memory: " << memManager.getUsedMemory() << " bytes\n";
+    std::cout << "Free memory: " << memManager.getFreeMemory() << " bytes\n";
+
+    std::cout << "Idle CPU ticks: " << idleTicks << "\n";
+    std::cout << "Active CPU ticks: " << activeTicks << "\n";
+    std::cout << "Total CPU ticks: " << idleTicks + activeTicks << "\n";
+
+    std::cout << "Num paged in: " << memManager.getPageIns() << "\n";
+    std::cout << "Num paged out: " << memManager.getPageOuts() << "\n";
+    std::cout << "======================\n";
 }
 
 void Scheduler::writeScreenListToFile(const std::string& filename) const {

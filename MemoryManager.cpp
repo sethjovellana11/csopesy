@@ -1,11 +1,13 @@
 #include "MemoryManager.h"
 #include <sstream>
 #include <algorithm>
+#include <random>
+#include <cmath>
 
-MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int mem_per_proc) 
-    : total_memory(max_overall_mem), frame_size(mem_per_frame), mem_per_proc(mem_per_proc) {
+MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc) 
+    : total_memory(max_overall_mem), frame_size(mem_per_frame), min_mem_per_proc(min_mem_per_proc), max_mem_per_proc(max_mem_per_proc) {
     this->frames = this->total_memory / this->frame_size;
-    this->frames_per_proc = this->mem_per_proc / frame_size;
+    this->frames_per_proc = this->max_mem_per_proc / frame_size;
     memory = std::vector<int>(frames, -1);
 }
 
@@ -31,8 +33,137 @@ bool MemoryManager::allocate(int processID) {
 
 void MemoryManager::deallocate(int processID) {
     for (int i = 0; i < frames; ++i) {
-        if (memory[i] == processID) memory[i] = -1;
+        if (memory[i] == processID) {
+            memory[i] = -1;
+        }
     }
+
+    // Clean up tables
+    pageTable.erase(processID);
+    pagesInMemory.erase(processID);
+    backingStore.erase(processID);
+
+    // Clean frame queue (remove any of processID's frames)
+    std::queue<int> newQueue;
+    while (!frameQueue.empty()) {
+        int idx = frameQueue.front(); frameQueue.pop();
+        if (memory[idx] != -1)
+            newQueue.push(idx);
+    }
+    frameQueue = std::move(newQueue);
+}
+
+bool MemoryManager::accessPage(int processID, int pageNum) {
+    // Check if page is already loaded
+    if (pageTable[processID].count(pageNum)) {
+        return true; // Page hit
+    }
+
+    // Page fault: need to load
+    int freeIdx = -1;
+    for (int i = 0; i < frames; ++i) {
+        if (memory[i] == -1) {
+            freeIdx = i;
+            break;
+        }
+    }
+
+    if (freeIdx == -1) {
+        // No free frame: use FIFO to evict
+        if (frameQueue.empty()) return false; // Nothing to evict?
+
+        int victimFrame = frameQueue.front();
+        frameQueue.pop();
+
+        int victimPID = memory[victimFrame];
+        int victimPage = -1;
+
+        // Find which page maps to victimFrame
+        for (auto& entry : pageTable[victimPID]) {
+            if (entry.second == victimFrame) {
+                victimPage = entry.first;
+                break;
+            }
+        }
+
+        // Evict victim
+        if (victimPage != -1) {
+            pageTable[victimPID].erase(victimPage);
+            pagesInMemory[victimPID].erase(victimPage);
+            backingStore[victimPID].insert(victimPage);
+            totalPagedOut++;
+        }
+
+        freeIdx = victimFrame;
+    }
+
+    // Load page into freeIdx
+    memory[freeIdx] = processID;
+    pageTable[processID][pageNum] = freeIdx;
+    pagesInMemory[processID].insert(pageNum);
+    frameQueue.push(freeIdx);
+    totalPagedIn++; 
+
+    return true;
+}
+
+bool MemoryManager::isPageInMemory(int processID, int pageNum) const {
+    auto it = pageTable.find(processID);
+    if (it == pageTable.end()) return false;
+    return it->second.count(pageNum) > 0;
+}
+
+bool MemoryManager::isPageInBackingStore(int processID, int pageNum) const {
+    auto it = backingStore.find(processID);
+    if (it == backingStore.end()) return false;
+    return it->second.count(pageNum) > 0;
+}
+
+bool MemoryManager::loadPageFromBackingStore(int processID, int pageNum) {
+    if (!isPageInBackingStore(processID, pageNum)) return false;
+
+    // Find free frame or evict
+    int freeIdx = -1;
+    for (int i = 0; i < frames; ++i) {
+        if (memory[i] == -1) {
+            freeIdx = i;
+            break;
+        }
+    }
+
+    if (freeIdx == -1) {
+        if (frameQueue.empty()) return false;
+
+        int victimFrame = frameQueue.front(); frameQueue.pop();
+        int victimPID = memory[victimFrame];
+        int victimPage = -1;
+
+        for (auto& entry : pageTable[victimPID]) {
+            if (entry.second == victimFrame) {
+                victimPage = entry.first;
+                break;
+            }
+        }
+
+        if (victimPage != -1) {
+            pageTable[victimPID].erase(victimPage);
+            pagesInMemory[victimPID].erase(victimPage);
+            backingStore[victimPID].insert(victimPage);
+            totalPagedOut++;
+        }
+
+        freeIdx = victimFrame;
+    }
+
+    // Load the page into memory
+    memory[freeIdx] = processID;
+    pageTable[processID][pageNum] = freeIdx;
+    pagesInMemory[processID].insert(pageNum);
+    backingStore[processID].erase(pageNum);
+    frameQueue.push(freeIdx);
+    totalPagedIn++;
+
+    return true;
 }
 
 int MemoryManager::getExternalFragmentation() const {
@@ -119,4 +250,41 @@ int MemoryManager::processesInMemory() const {
             seen[pid] = true;
     }
     return seen.size();
+}
+
+int MemoryManager::randomMemoryForProcess() const {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(min_mem_per_proc, max_mem_per_proc);
+    return dist(gen);
+}
+
+int MemoryManager::calculatePagesRequired(int memoryRequired) const {
+    return static_cast<int>(std::ceil(static_cast<double>(memoryRequired) / frame_size));
+}
+
+size_t MemoryManager::getTotalMemory() const {
+    return total_memory;
+}
+
+size_t MemoryManager::getUsedMemory() const {
+    return total_memory - getFreeMemory();
+}
+
+size_t MemoryManager::getFreeMemory() const {
+    int freeCount = 0;
+    for (int pid : memory) {
+        if (pid == -1) {
+            ++freeCount;
+        }
+    }
+    return static_cast<size_t>(freeCount) * frame_size;
+}
+
+int MemoryManager::getPageIns() const {
+    return totalPagedIn;
+}
+
+int MemoryManager::getPageOuts() const {
+    return totalPagedOut;
 }

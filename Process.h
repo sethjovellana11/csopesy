@@ -28,10 +28,20 @@ public:
     int getTotalInstructions() const;
     std::unordered_map<std::string, int32_t>& getVariables();
 
+    // Demand Paging
+    int getCurrentPage() const;                         
+    static const int INSTRUCTIONS_PER_PAGE = 4; 
+
+    void incrementCurrentPage();
+    void setPagesRequired(int pages) { pagesRequired = pages; }
+    int getPagesRequired() const { return pagesRequired; }
+
 private:
     int id;
     int instructionCount;
     int coreID;
+    int pagesRequired;
+    int currentPage;
     int delayPerInstruction = 50;
     bool memoryAllocated = false;
     

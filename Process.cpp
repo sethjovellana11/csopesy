@@ -108,3 +108,9 @@ int Process::getTotalInstructions() const {
 std::unordered_map<std::string, int32_t>& Process::getVariables() {
     return variables;
 }
+
+int Process::getCurrentPage() const {
+    int page = instructionCount * pagesRequired / static_cast<int>(instructions.size());
+
+    return std::min(page, pagesRequired - 1);
+}

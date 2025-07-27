@@ -24,7 +24,7 @@ public:
     void launch();
     void shutdown();
 
-    void init_mem_manager(int max_overall_mem, int mem_per_frame, int mem_per_proc);
+    void init_mem_manager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc);
 
     void addProcess(Process* process);
     void createProcess(const std::string& procName, int instMin, int instMax);
@@ -38,11 +38,14 @@ public:
     void run();
     void stop();
     bool getIsCreatingProcesses() const;
+
     void printScreenList() const;
+    void printProcessSmi() const;
+    void printVMStats() const;
 
 
 private:
-    MemoryManager memManager = MemoryManager(16384, 16, 4096); // DEFAULT VALUES
+    MemoryManager memManager = MemoryManager(16384, 16, 265, 1024); // DEFAULT VALUES
     int cycleCounter = 0;
 
     void cpuWorker(int coreID);
@@ -68,4 +71,8 @@ private:
 
     std::thread processCreatorThread;
     bool isCreatingProcesses = false;
+
+    //ticks
+    size_t activeTicks = 0;
+    size_t idleTicks = 0;
 };
