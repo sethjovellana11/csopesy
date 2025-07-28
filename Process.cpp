@@ -12,11 +12,11 @@ void Process::setDelay(int ms) {
     delayPerInstruction = ms;
 }
 
-void Process::setIsAllocated(bool isAlloc){
+void Process::setIsAllocated(bool isAlloc) {
     memoryAllocated = isAlloc;
 }
 
-bool Process:: getIsAllocated(){
+bool Process::getIsAllocated() {
     return memoryAllocated;
 }
 
@@ -24,13 +24,13 @@ void Process::assignCore(int coreID) {
     this->coreID = coreID;
     screenInfo.setCoreID(coreID);
 }
+
 void Process::addInstruction(std::shared_ptr<ICommand> instr) {
     instructions.push_back(instr);
 }
 
-// executeNextInstruction now passes a reference to itself to the command.
+// Execute the next instruction
 void Process::executeNextInstruction() {
-    // Create logs directory if it doesn't exist.
     if (!std::filesystem::exists("logs")) {
         std::filesystem::create_directory("logs");
     }
@@ -39,7 +39,6 @@ void Process::executeNextInstruction() {
 
     std::string logPath = "logs/" + screenInfo.getName() + ".txt";
 
-    // Initialize detailed log file if first instruction
     if (instructionCount == 0) {
         std::ofstream log(logPath);
         log << "Process Name: " << screenInfo.getName() << "\n"
@@ -48,11 +47,9 @@ void Process::executeNextInstruction() {
         log.close();
     }
 
-    // Execute instruction and log it
     auto instr = instructions[instructionCount];
-    instr->execute(*this); // Pass the process object itself to the command
+    instr->execute(*this);
 
-    // Write detailed log to file
     std::ofstream log(logPath, std::ios::app);
     log << "[" << ScreenInfo::getCurrentTimestamp() << "] "
         << "Process: " << screenInfo.getName()
@@ -76,7 +73,7 @@ int Process::getID() const {
     return id;
 }
 
-ScreenInfo& Process::getScreenInfo(){
+ScreenInfo& Process::getScreenInfo() {
     return screenInfo;
 }
 
@@ -85,26 +82,30 @@ void Process::updateScreenInfo() {
     screenInfo.setCoreID(coreID);
 }
 
-// --- New methods for 'process-smi' ---
-
-// Adds a log message from a PRINT command to the in-memory buffer.
+// --- screen-smi support methods ---
 void Process::addLog(const std::string& log_message) {
     std::lock_guard<std::mutex> lock(log_mutex);
     print_logs.push_back(log_message);
 }
 
-// Safely retrieves all logs from the buffer.
 std::vector<std::string> Process::getLogs() {
     std::lock_guard<std::mutex> lock(log_mutex);
     return print_logs;
 }
 
-// Gets the total number of instructions for the process.
 int Process::getTotalInstructions() const {
     return instructions.size();
 }
 
-// Provides access to the process's variables map.
 std::unordered_map<std::string, int32_t>& Process::getVariables() {
     return variables;
+}
+
+// --- Memory size support ---
+void Process::setMemorySize(int size) {
+    memorySizeBytes = size;
+}
+
+int Process::getMemorySize() const {
+    return memorySizeBytes;
 }

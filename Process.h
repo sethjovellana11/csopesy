@@ -12,29 +12,38 @@ public:
     Process(const std::string& name, int id);
 
     void assignCore(int coreID);
-    void setDelay(int ms); 
+    void setDelay(int ms);
     void addInstruction(std::shared_ptr<ICommand> instr);
     void executeNextInstruction();
+    
     bool isComplete() const;
     bool getIsAllocated();
     void setIsAllocated(bool isAllocated);
+    
     int getID() const;
     ScreenInfo& getScreenInfo();
     void updateScreenInfo();
 
-    // New methods to support process-smi
+    // Memory size management
+    void setMemorySize(int size);
+    int getMemorySize() const;
+
+    // screen-smi logging
     void addLog(const std::string& log_message);
     std::vector<std::string> getLogs();
+
+    // Variables and instruction count
     int getTotalInstructions() const;
     std::unordered_map<std::string, int32_t>& getVariables();
 
 private:
     int id;
-    int instructionCount;
     int coreID;
     int delayPerInstruction = 50;
+    int instructionCount = 0;
+    int memorySizeBytes = 0;
     bool memoryAllocated = false;
-    
+
     ScreenInfo screenInfo;
     std::vector<std::shared_ptr<ICommand>> instructions;
     std::unordered_map<std::string, int32_t> variables;

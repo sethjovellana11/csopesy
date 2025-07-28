@@ -2,24 +2,28 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <fstream>
 
 class MemoryManager {
 private:
-    /* Values changed from constants to configurable values
-    static const int TOTAL_MEMORY = 16384;
-    static const int FRAME_SIZE = 16;
-    static const int FRAMES = TOTAL_MEMORY / FRAME_SIZE;
-    static const int FRAMES_PER_PROC = 4096 / FRAME_SIZE;
-    */
     int total_memory, frame_size, mem_per_proc;
     int frames, frames_per_proc;
+    std::vector<int> memory;
+    std::map<int, std::vector<int>> process_page_table; // Process ID -> List of page frames
 
-    std::vector<int> memory; 
+    std::string backing_store_filename = "csopesy-backing-store.txt"; // Simulate backing store file
+    std::fstream backing_store; // For simulating page writes/reads from backing store
+
 public:
     MemoryManager(int max_overall_mem, int mem_per_frame, int mem_per_proc);
+    ~MemoryManager();
 
-    bool allocate(int processID);
+    bool allocate(int processID, int pageID);
     void deallocate(int processID);
+    void pageFaultHandler(int processID, int pageID);
+    void swapPageToBackingStore(int processID, int pageID);
+    void loadPageFromBackingStore(int processID, int pageID);
+
     int getExternalFragmentation() const;
     std::string asciiMemoryMap() const;
     int processesInMemory() const;
