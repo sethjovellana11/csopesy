@@ -67,4 +67,6 @@ public:
     void incrementPagedOut();
     int getPageIns() const;
     int getPageOuts() const;
+
+    void printFrameTable() const ;
 };

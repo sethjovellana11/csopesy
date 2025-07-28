@@ -387,3 +387,31 @@ int MemoryManager::getPageIns() const {
 int MemoryManager::getPageOuts() const {
     return totalPagedOut;
 }
+
+void MemoryManager::printFrameTable() const {
+    std::map<int, std::pair<int, int>> frameMap; // frameIndex → (pid, pageNum)
+
+    // Build reverse mapping: frame → (PID, page)
+    for (const auto& [pid, pages] : pageTable) {
+        for (const auto& [pageNum, frameIdx] : pages) {
+            frameMap[frameIdx] = {pid, pageNum};
+        }
+    }
+
+    std::cout << "===== Frame Table =====\n";
+    for (int i = 0; i < memory.size(); ++i) {
+        if (memory[i] == -1) {
+            std::cout << "Frame " << i << ": [FREE]\n";
+        } else {
+            auto it = frameMap.find(i);
+            if (it != frameMap.end()) {
+                std::cout << "Frame " << i << ": PID " << it->second.first 
+                          << ", Page " << it->second.second << "\n";
+            } else {
+                std::cout << "Frame " << i << ": PID " << memory[i] 
+                          << ", Page [Unknown]\n";
+            }
+        }
+    }
+    std::cout << "========================\n";
+}

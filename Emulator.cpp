@@ -280,6 +280,10 @@ void Emulator::handleMainCommand(const std::string& input) {
     if (checkInitialized()) 
         clearScreen();
         scheduler->printProcessSmi();
+    }else if (input == "display-frames") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printMemoryStatus();
     }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;

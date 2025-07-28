@@ -43,6 +43,7 @@ public:
     void printProcessSmi() const;
     void printVMStats() const;
 
+    void printMemoryStatus() const;
 
 private:
     MemoryManager memManager = MemoryManager(16384, 16, 265, 1024); // DEFAULT VALUES

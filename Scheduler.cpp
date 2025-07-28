@@ -479,3 +479,7 @@ void Scheduler::writeScreenListToFile(const std::string& filename) const {
     outFile.close();
     std::cout << "Process report written to " << filename << std::endl;
 }
+
+void Scheduler::printMemoryStatus() const{
+    memManager.printFrameTable();
+}
