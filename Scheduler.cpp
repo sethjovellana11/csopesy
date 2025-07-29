@@ -483,3 +483,7 @@ void Scheduler::writeScreenListToFile(const std::string& filename) const {
 void Scheduler::printMemoryStatus() const{
     memManager.printFrameTable();
 }
+
+void Scheduler::printBackingStoreStatus() const{
+    memManager.printBackingStoreToFile();
+}

@@ -44,6 +44,7 @@ public:
     void printVMStats() const;
 
     void printMemoryStatus() const;
+    void printBackingStoreStatus() const;
 
 private:
     MemoryManager memManager = MemoryManager(16384, 16, 265, 1024); // DEFAULT VALUES

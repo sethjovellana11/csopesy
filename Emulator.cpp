@@ -284,6 +284,10 @@ void Emulator::handleMainCommand(const std::string& input) {
     if (checkInitialized()) 
         clearScreen();
         scheduler->printMemoryStatus();
+    }else if (input == "backing-store") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printBackingStoreStatus();
     }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;

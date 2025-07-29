@@ -4,6 +4,7 @@
 #include <random>
 #include <iostream>
 #include <cmath>
+#include <fstream>  
 
 MemoryManager::MemoryManager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc) 
     : total_memory(max_overall_mem), frame_size(mem_per_frame), min_mem_per_proc(min_mem_per_proc), max_mem_per_proc(max_mem_per_proc) {
@@ -414,4 +415,34 @@ void MemoryManager::printFrameTable() const {
         }
     }
     std::cout << "========================\n";
+}
+
+void MemoryManager::printBackingStoreToFile() const {
+    std::ofstream outFile("csopesy-backingstore.txt");
+    if (!outFile.is_open()) {
+        std::cerr << "Error: Unable to open csopesy-backingstore.txt for writing.\n";
+        return;
+    }
+
+    std::ostringstream consoleOutput;
+    consoleOutput << "=== Backing Store Contents ===\n";
+
+    for (const auto& entry : backingStore) {
+        int pid = entry.first;
+        const std::set<int>& pages = entry.second;
+
+        consoleOutput << "Process " << pid << ":\n";
+        outFile << "Process " << pid << ":\n";
+
+        for (int pageNum : pages) {
+            consoleOutput << "  Page " << pageNum << "\n";
+            outFile << "  Page " << pageNum << "\n";
+        }
+
+        consoleOutput << "\n";
+        outFile << "\n";
+    }
+
+    outFile.close();
+    std::cout << consoleOutput.str();
 }

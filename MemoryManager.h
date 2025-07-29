@@ -69,4 +69,5 @@ public:
     int getPageOuts() const;
 
     void printFrameTable() const ;
+    void printBackingStoreToFile() const;
 };
