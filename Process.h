@@ -1,6 +1,7 @@
 #pragma once
 #include "ScreenInfo.h"
 #include "ICommand.h"
+#include "SymbolTable.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -39,6 +40,16 @@ public:
     int getMemory() const { return memory; }
     int getMemPerPage() const { return memPerPage; }
 
+    //SYMBOL TABLE
+    SymbolTable& getSymbolTable() { return symbolTable; }
+    const SymbolTable& getSymbolTable() const { return symbolTable; }
+
+    //READ WRITE
+    uint16_t readMemory(uint16_t address) const;
+    void writeMemory(uint16_t address, uint16_t value);
+    bool isTerminated() const;
+    void shutdown(const std::string& reason);
+
 private:
     int id;
     int instructionCount;
@@ -56,4 +67,12 @@ private:
 
     std::vector<std::string> print_logs;
     mutable std::mutex log_mutex;
+
+    //SYMBOL TABLE
+    SymbolTable symbolTable;
+
+    // READ WRITE
+    int memorySize = 0; // Total memory allocated to this process in bytes
+    std::unordered_map<uint16_t, uint16_t> emulatedMemory; // address → value map
+    bool terminated = false;
 };

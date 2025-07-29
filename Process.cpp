@@ -114,3 +114,41 @@ int Process::getCurrentPage() const {
 
     return std::min(page, pagesRequired - 1);
 }
+
+uint16_t Process::readMemory(uint16_t address) const {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid read at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    auto it = emulatedMemory.find(address);
+    if (it != emulatedMemory.end()) {
+        return it->second;
+    }
+
+    return 0; // uninitialized memory defaults to 0
+}
+
+void Process::writeMemory(uint16_t address, uint16_t value) {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid write at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    emulatedMemory[address] = value;
+}
+
+void Process::shutdown(const std::string& reason) {
+    terminated = true;
+
+    std::string logPath = "logs/" + screenInfo.getName() + ".txt";
+    std::ofstream log(logPath, std::ios::app);
+
+    log << "[!!! SHUTDOWN !!!] "
+        << "Process: " << screenInfo.getName()
+        << " | Reason: " << reason << "\n";
+    log.close();
+
+    addLog("[SHUTDOWN] Process terminated due to: " + reason);
+}
+
