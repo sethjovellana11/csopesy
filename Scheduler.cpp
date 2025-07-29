@@ -49,7 +49,7 @@ bool Scheduler::getIsCreatingProcesses() const{
     return isCreatingProcesses;
 }
 
-void Scheduler::createProcess(const std::string& procName, int instMin, int instMax){
+void Scheduler::createProcess(const std::string& procName, int instMin, int instMax, int memory){
     Process* p = new Process(procName, allProcesses.size() + 1);
 
     InstructionGenerator gen;
@@ -61,12 +61,16 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
 
     p->setDelay(delayPerInstruction);
 
-    int memSize = memManager.randomMemoryForProcess(); 
-    int pages = memManager.calculatePagesRequired(memSize); 
+    if(memory == -1)
+    {
+        memory = memManager.randomMemoryForProcess(); 
+    }
+    
+    int pages = memManager.calculatePagesRequired(memory); 
     p->setPagesRequired(pages);
-    p->setMemory(memSize);
+    p->setMemory(memory);
     p->getScreenInfo().setTotalLine(instCount);
-    p->getScreenInfo().setTotalMem(memSize);
+    p->getScreenInfo().setTotalMem(memory);
     this->addProcess(p);       
 }
 
@@ -81,7 +85,7 @@ void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int in
         while (isCreatingProcesses) {
             if (cycle == 0) {
                 std::string name = "Process" + std::to_string(process_count + 1);
-                this->createProcess(name, instMin, instMax);
+                this->createProcess(name, instMin, instMax, -1);
                 ++process_count;
             }
 

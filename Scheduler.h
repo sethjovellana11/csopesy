@@ -27,7 +27,7 @@ public:
     void init_mem_manager(int max_overall_mem, int mem_per_frame, int min_mem_per_proc, int max_mem_per_proc);
 
     void addProcess(Process* process);
-    void createProcess(const std::string& procName, int instMin, int instMax);
+    void createProcess(const std::string& procName, int instMin, int instMax, int memory);
     
     Process* findProcess(const std::string& name);
     void createProcessesStart(int batch_process_freq, int instMin, int instMax);

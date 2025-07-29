@@ -204,28 +204,40 @@ void Emulator::handleMainCommand(const std::string& input) {
     } else if (input.rfind("screen -s ", 0) == 0) {
         if (checkInitialized()) {
             clearScreen();
-            std::string name = input.substr(10);
-            if (!name.empty()) {
+
+            std::istringstream iss(input.substr(10));  
+            std::string name;
+            int memorySize = -1;
+
+            iss >> name >> memorySize;
+
+            auto isPowerOfTwo = [](int x) {
+                return x > 0 && (x & (x - 1)) == 0;
+            };
+
+            if (name.empty()) {
+                std::cout << "Missing process name after 'screen -s'" << std::endl;
+            } else if (memorySize < 64 || memorySize > 65536 || !isPowerOfTwo(memorySize)) {
+                std::cout << "Invalid memory allocation. Memory must be a power of two between 64 and 65536 bytes." << std::endl;
+            } else {
                 Process* p = scheduler->findProcess(name);
+
                 if (p == nullptr) {
-                    scheduler->createProcess(name, min_ins, max_ins);
-                    p = scheduler->findProcess(name); 
+                    scheduler->createProcess(name, min_ins, max_ins, memorySize);
+                    p = scheduler->findProcess(name);
                 }
-                
-                if (p && p->isComplete()){
-                     std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
+
+                if (p && p->isComplete()) {
+                    std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
                 } else if (p) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
                     std::cout << std::endl;
-                    //showProcessSMI(name);
                 }
-            } else {
-                std::cout << "Missing process name after 'screen -s'" << std::endl;
             }
-        } 
-    } else if (input.rfind("screen -r ", 0) == 0) { // New command logic
+        }
+    }else if (input.rfind("screen -r ", 0) == 0) { // New command logic
         if (checkInitialized()) {
             clearScreen();
             std::string name = input.substr(10);
