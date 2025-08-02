@@ -15,6 +15,7 @@
         "Scheduler.cpp",
         "InstructionGenerator.cpp",
         "MemoryManager.cpp",
+        "SymbolTable.cpp",
         "-o",
         "emulator"
       ],
