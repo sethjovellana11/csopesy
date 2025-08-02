@@ -8,6 +8,7 @@ public:
     std::string toString() const;
 
     void display() const;
+    void displaySmi() const;
     const std::string& getName() const;
 
     void setCoreID(int id);
@@ -27,11 +28,14 @@ public:
 
     void incrementLine();
 
+    void setTotalMem(int mem);
+
 private:
     std::string name;
     int coreID;
     int currentLine;
     int totalLine;
+    int totalMem;
     std::string timestamp;
 };
 

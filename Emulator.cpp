@@ -76,7 +76,8 @@ void Emulator::initialize() {
         else if (key == "delays-per-exec") this->delay_per_exec = std::stoi(value);
         else if (key == "max-overall-mem") this->max_overall_mem = std::stoi(value);
         else if (key == "mem-per-frame") this->mem_per_frame = std::stoi(value);
-        else if (key == "mem-per-proc") this->mem_per_proc = std::stoi(value);
+        else if (key == "min-mem-per-proc") this->min_mem_per_proc = std::stoi(value);
+        else if (key == "max-mem-per-proc") this->max_mem_per_proc = std::stoi(value);
     }
 
     if(scheduler_type == "rr"){
@@ -89,7 +90,12 @@ void Emulator::initialize() {
     
     isInitialized = true;
     scheduler->setDelay(delay_per_exec);
-    scheduler->init_mem_manager(this->max_overall_mem, this->mem_per_frame, this->mem_per_proc);
+    scheduler->init_mem_manager(
+        this->max_overall_mem, 
+        this->mem_per_frame, 
+        this->min_mem_per_proc, 
+        this->max_mem_per_proc
+    );
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
     std::thread([this]() { scheduler->run(); }).detach();
@@ -198,28 +204,40 @@ void Emulator::handleMainCommand(const std::string& input) {
     } else if (input.rfind("screen -s ", 0) == 0) {
         if (checkInitialized()) {
             clearScreen();
-            std::string name = input.substr(10);
-            if (!name.empty()) {
+
+            std::istringstream iss(input.substr(10));  
+            std::string name;
+            int memorySize = -1;
+
+            iss >> name >> memorySize;
+
+            auto isPowerOfTwo = [](int x) {
+                return x > 0 && (x & (x - 1)) == 0;
+            };
+
+            if (name.empty()) {
+                std::cout << "Missing process name after 'screen -s'" << std::endl;
+            } else if (memorySize < 64 || memorySize > 65536 || !isPowerOfTwo(memorySize)) {
+                std::cout << "Invalid memory allocation. Memory must be a power of two between 64 and 65536 bytes." << std::endl;
+            } else {
                 Process* p = scheduler->findProcess(name);
+
                 if (p == nullptr) {
-                    scheduler->createProcess(name, min_ins, max_ins);
-                    p = scheduler->findProcess(name); 
+                    scheduler->createProcess(name, min_ins, max_ins, memorySize);
+                    p = scheduler->findProcess(name);
                 }
-                
-                if (p && p->isComplete()){
-                     std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
+
+                if (p && p->isComplete()) {
+                    std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
                 } else if (p) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
                     std::cout << std::endl;
-                    //showProcessSMI(name);
                 }
-            } else {
-                std::cout << "Missing process name after 'screen -s'" << std::endl;
             }
-        } 
-    } else if (input.rfind("screen -r ", 0) == 0) { // New command logic
+        }
+    }else if (input.rfind("screen -r ", 0) == 0) { // New command logic
         if (checkInitialized()) {
             clearScreen();
             std::string name = input.substr(10);
@@ -266,7 +284,23 @@ void Emulator::handleMainCommand(const std::string& input) {
             scheduler->writeScreenListToFile("csopesylog.txt");
     } else if (input == "clear") {
         clearScreen();
-    } else if (input == "exit") {
+    } else if (input == "vmstat") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printVMStats();
+    }else if (input == "process-smi") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printProcessSmi();
+    }else if (input == "display-frames") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printMemoryStatus();
+    }else if (input == "backing-store") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printBackingStoreStatus();
+    }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;
     } else if (input.empty()) {

@@ -29,7 +29,7 @@ uint16_t InstructionGenerator::getRandomValue() {
 }
 
 std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int currentDepth) {
-    std::uniform_int_distribution<int> typeDist(0, currentDepth < maxDepth ? 5 : 4);
+    std::uniform_int_distribution<int> typeDist(0, currentDepth < maxDepth ? 7 : 6);
     int type = typeDist(rng);
 
     switch (type) {
@@ -70,6 +70,19 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
             int bodyLength = lenDist(rng);
             auto body = generateInstructions(bodyLength, currentDepth + 1);
             return std::make_shared<ForCommand>(body, repeatCount);
+        }
+        case 6: { // READ
+            std::string var = getRandomVar(false);  // store into a new variable
+            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
+            uint16_t addr = addrDist(rng) & 0xFFFE;  // align to even byte for 2-byte read
+            return std::make_shared<ReadCommand>(var, addr);
+        }
+
+        case 7: { // WRITE
+            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
+            uint16_t addr = addrDist(rng) & 0xFFFE;  // ensure 2-byte aligned
+            uint16_t val = getRandomValue();
+            return std::make_shared<WriteCommand>(addr, val);
         }
 
         default:

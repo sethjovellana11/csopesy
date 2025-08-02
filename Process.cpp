@@ -12,11 +12,11 @@ void Process::setDelay(int ms) {
     delayPerInstruction = ms;
 }
 
-void Process::setIsAllocated(bool isAlloc) {
+void Process::setIsAllocated(bool isAlloc){
     memoryAllocated = isAlloc;
 }
 
-bool Process::getIsAllocated() {
+bool Process:: getIsAllocated(){
     return memoryAllocated;
 }
 
@@ -24,13 +24,13 @@ void Process::assignCore(int coreID) {
     this->coreID = coreID;
     screenInfo.setCoreID(coreID);
 }
-
 void Process::addInstruction(std::shared_ptr<ICommand> instr) {
     instructions.push_back(instr);
 }
 
-// Execute the next instruction
+// executeNextInstruction now passes a reference to itself to the command.
 void Process::executeNextInstruction() {
+    // Create logs directory if it doesn't exist.
     if (!std::filesystem::exists("logs")) {
         std::filesystem::create_directory("logs");
     }
@@ -39,6 +39,7 @@ void Process::executeNextInstruction() {
 
     std::string logPath = "logs/" + screenInfo.getName() + ".txt";
 
+    // Initialize detailed log file if first instruction
     if (instructionCount == 0) {
         std::ofstream log(logPath);
         log << "Process Name: " << screenInfo.getName() << "\n"
@@ -47,9 +48,11 @@ void Process::executeNextInstruction() {
         log.close();
     }
 
+    // Execute instruction and log it
     auto instr = instructions[instructionCount];
-    instr->execute(*this);
+    instr->execute(*this); // Pass the process object itself to the command
 
+    // Write detailed log to file
     std::ofstream log(logPath, std::ios::app);
     log << "[" << ScreenInfo::getCurrentTimestamp() << "] "
         << "Process: " << screenInfo.getName()
@@ -73,7 +76,7 @@ int Process::getID() const {
     return id;
 }
 
-ScreenInfo& Process::getScreenInfo() {
+ScreenInfo& Process::getScreenInfo(){
     return screenInfo;
 }
 
@@ -82,30 +85,78 @@ void Process::updateScreenInfo() {
     screenInfo.setCoreID(coreID);
 }
 
-// --- screen-smi support methods ---
+// --- New methods for 'process-smi' ---
+
+// Adds a log message from a PRINT command to the in-memory buffer.
 void Process::addLog(const std::string& log_message) {
     std::lock_guard<std::mutex> lock(log_mutex);
     print_logs.push_back(log_message);
 }
 
+// Safely retrieves all logs from the buffer.
 std::vector<std::string> Process::getLogs() {
     std::lock_guard<std::mutex> lock(log_mutex);
     return print_logs;
 }
 
+// Gets the total number of instructions for the process.
 int Process::getTotalInstructions() const {
     return instructions.size();
 }
 
+// Provides access to the process's variables map.
 std::unordered_map<std::string, int32_t>& Process::getVariables() {
     return variables;
 }
 
-// --- Memory size support ---
-void Process::setMemorySize(int size) {
-    memorySizeBytes = size;
+int Process::getCurrentPage() const {
+    int page = instructionCount * pagesRequired / static_cast<int>(instructions.size());
+
+    return std::min(page, pagesRequired - 1);
 }
 
-int Process::getMemorySize() const {
-    return memorySizeBytes;
+void Process::incrementCurrentPage() {
+    currentPage = (currentPage + 1) % pagesRequired;
 }
+
+uint16_t Process::readMemory(uint16_t address) const {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid read at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    auto it = emulatedMemory.find(address);
+    if (it != emulatedMemory.end()) {
+        return it->second;
+    }
+
+    return 0; // uninitialized memory defaults to 0
+}
+
+void Process::writeMemory(uint16_t address, uint16_t value) {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid write at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    emulatedMemory[address] = value;
+}
+
+bool Process::isTerminated() const {
+    return terminated;
+}
+
+void Process::shutdown(const std::string& reason) {
+    terminated = true;
+
+    std::string logPath = "logs/" + screenInfo.getName() + ".txt";
+    std::ofstream log(logPath, std::ios::app);
+
+    log << "[!!! SHUTDOWN !!!] "
+        << "Process: " << screenInfo.getName()
+        << " | Reason: " << reason << "\n";
+    log.close();
+
+    addLog("[SHUTDOWN] Process terminated due to: " + reason);
+}
+

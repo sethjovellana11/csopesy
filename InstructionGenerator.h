@@ -6,6 +6,8 @@
 #include "PrintCommand.h"
 #include "SleepCommand.h"
 #include "ForCommand.h"
+#include "WriteCommand.h"
+#include "ReadCommand.h"
 
 #include <vector>
 #include <string>
