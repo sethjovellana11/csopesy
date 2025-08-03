@@ -22,6 +22,7 @@ public:
         : maxDepth(maxDepth), rng(rd()) {}
 
     std::vector<std::shared_ptr<ICommand>> generateInstructions(int count, int currentDepth = 0);
+    std::vector<std::shared_ptr<ICommand>> generate(const std::string& input);
 
 private:
     std::random_device rd;

@@ -3,8 +3,12 @@
 #include "Scheduler.h"
 #include "InstructionGenerator.h"
 #include <string>
+#include <memory>
 #include <iostream>
 #include <cstdlib>
+#include <iomanip>
+#include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -259,7 +263,64 @@ void Emulator::handleMainCommand(const std::string& input) {
                 std::cout << "Missing process name after 'screen -r" << std::endl;
             }
         }
-    } else if (input == "screen -ls") {
+    }  else if (input.rfind("screen -c ", 0) == 0) {
+        if (checkInitialized()) {
+            std::istringstream iss(input.substr(10));
+            std::string name;
+            int memorySize;
+            std::string instructionBlock;
+            InstructionGenerator generator;
+            
+            iss >> name >> memorySize;
+            std::getline(iss, instructionBlock);
+
+            instructionBlock.erase(0, instructionBlock.find_first_of("\"") + 1);
+            instructionBlock.erase(instructionBlock.find_last_of("\""));
+
+            // Validate memory
+            auto isPowerOfTwo = [](int x) { return x > 0 && (x & (x - 1)) == 0; };
+            if (memorySize < 64 || memorySize > 65536 || !isPowerOfTwo(memorySize)) {
+                std::cout << "Invalid memory allocation. Memory must be a power of two between 64 and 65536 bytes." << std::endl;
+                return;
+            }
+
+            std::vector<std::string> instructions;
+            std::istringstream commandStream(instructionBlock);
+            std::string command;
+            while (std::getline(commandStream, command, ';')) {
+                if (!command.empty()) {
+                    instructions.push_back(command);
+                }
+            }
+
+            if (instructions.empty() || instructions.size() > 50) {
+                std::cout << "Invalid command: instruction count must be between 1 and 50." << std::endl;
+                return;
+            }
+
+            std::vector<std::shared_ptr<ICommand>> commands;
+            for (const std::string& inst : instructions) {
+                auto cmds = generator.generate(inst);  
+                
+                if (cmds.empty()) {
+                    std::cout << "Invalid command: '" << inst << "'" << std::endl;
+                    return;
+                }
+
+                for (auto& cmd : cmds) {
+                    commands.push_back(cmd); 
+                }
+            }
+
+            if (scheduler->findProcess(name)) {
+                std::cout << "Process '" << name << "' already exists." << std::endl;
+                return;
+            }
+
+            scheduler->createProcessIns(name, memorySize, std::move(commands));
+            std::cout << "Process '" << name << "' created with custom instructions." << std::endl;
+        }
+    }else if (input == "screen -ls") {
         if (checkInitialized()) {
             clearScreen();
             scheduler->printScreenList();
@@ -309,6 +370,7 @@ void Emulator::handleMainCommand(const std::string& input) {
         std::cout << "Unknown command: " << input << std::endl;
     }
 }
+
 
 void Emulator::run() {
     std::string input;

@@ -28,6 +28,7 @@ public:
 
     void addProcess(Process* process);
     void createProcess(const std::string& procName, int instMin, int instMax, int memory);
+    void createProcessIns(const std::string& name, int memorySize, std::vector<std::shared_ptr<ICommand>> instructions);
     
     Process* findProcess(const std::string& name);
     void createProcessesStart(int batch_process_freq, int instMin, int instMax);

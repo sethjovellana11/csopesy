@@ -74,6 +74,30 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
     this->addProcess(p);       
 }
 
+void Scheduler::createProcessIns(const std::string& name, int memorySize, std::vector<std::shared_ptr<ICommand>> instructions) {
+    Process* p = new Process(name, allProcesses.size() + 1);
+
+
+    for (auto& instr : instructions) {
+       
+        p->addInstruction(std::move(instr)); 
+    }
+
+    p->setDelay(delayPerInstruction);
+
+    if (memorySize == -1) {
+        memorySize = memManager.randomMemoryForProcess();
+    }
+
+    int pages = memManager.calculatePagesRequired(memorySize);
+    p->setPagesRequired(pages);
+    p->setMemory(memorySize);
+    p->getScreenInfo().setTotalLine(instructions.size());
+    p->getScreenInfo().setTotalMem(memorySize);
+
+    this->addProcess(p);
+}
+
 void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int instMax) {
     if (isCreatingProcesses) return;
 
