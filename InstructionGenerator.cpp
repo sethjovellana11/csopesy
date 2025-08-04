@@ -106,16 +106,13 @@ std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std:
             declaredVars.insert(var);
         }
         else if (command == "PRINT") {
-            std::string msg;
-            std::getline(line, msg);
-            size_t start = msg.find('\"'), end = msg.rfind('\"');
-            if (start == std::string::npos || end == std::string::npos || start == end) {
+            std::string var;
+            line >> var;
+            if (var.empty()) {
                 std::cout << "invalid PRINT syntax" << std::endl;
                 return {};
             }
-
-            std::string content = msg.substr(start + 1, end - start - 1);
-            commands.push_back(std::make_shared<PrintCommand>(content));
+            commands.push_back(std::make_shared<PrintCommand>(var));
         }
         else if (command == "SLEEP") {
             int ticks;
@@ -168,7 +165,7 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
 
         case 3: { // PRINT
             std::string var = getRandomVar(true);
-            return std::make_shared<PrintCommand>("Print value of " + var + ": +" + var);
+            return std::make_shared<PrintCommand>(var);
         }
 
         case 4: { // SLEEP

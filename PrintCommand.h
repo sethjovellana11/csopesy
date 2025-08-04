@@ -5,26 +5,30 @@
 #include <sstream>
 
 class PrintCommand : public ICommand {
-    std::string msg;
+    std::string varName;
+
 public:
-    PrintCommand(const std::string& message) : msg(message) {}
+    PrintCommand(const std::string& varName) : varName(varName) {}
 
     void execute(Process& process) override {
-        // Generate the log message in the format specified by the screenshot
-        std::string timestamp = ScreenInfo::getCurrentTimestamp();
-        int coreID = process.getScreenInfo().getCoreID();
-        std::string message = "Hello world from " + process.getScreenInfo().getName() + "!";
-        
-        std::ostringstream oss;
-        oss << "(" << timestamp << ") Core:" << coreID << " \"" << message << "\"";
+        const auto& vars = process.getVariables();
+        std::string output;
 
-        // Add the formatted log to the process's internal log buffer
+        if (vars.count(varName)) {
+            output = varName + " = " + std::to_string(vars.at(varName));
+        } else {
+            output = "Variable '" + varName + "' is undefined";
+        }
+
+        std::ostringstream oss;
+        oss << "(" << ScreenInfo::getCurrentTimestamp()
+            << ") Core:" << process.getScreenInfo().getCoreID()
+            << " \"" << output << "\"";
+
         process.addLog(oss.str());
     }
 
-    std::string toString() const override{
-        // Based on your requirements, the printed message is always the same.
-        // The 'msg' from the constructor is ignored for now.
-        return "PRINT \"Hello world from ...\"";
+    std::string toString() const override {
+        return "PRINT " + varName;
     }
 };
