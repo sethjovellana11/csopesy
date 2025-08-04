@@ -17,7 +17,9 @@ public:
     void execute(Process& process) override {
         try {
             if (address >= process.getMemory()) {
-                process.shutdown("Access violation: WRITE to invalid address 0x" + toHex(address));
+                std::ostringstream oss;
+                oss << "Access violation: WRITE to invalid address 0x" << std::hex << std::uppercase << address;
+                process.shutdown(oss.str());
                 return;
             }
 
@@ -25,7 +27,7 @@ public:
 
             std::ostringstream oss;
             oss << "(" << ScreenInfo::getCurrentTimestamp() << ") Core:" << process.getScreenInfo().getCoreID()
-                << " \"WRITE 0x" << toHex(address) << " " << value << "\"";
+                << " \"WRITE 0x" << std::hex << std::uppercase << address << " 0x" << std::hex << std::uppercase << value << "\"";
             process.addLog(oss.str());
         } catch (const std::exception& e) {
             process.shutdown("Exception during WRITE: " + std::string(e.what()));
@@ -33,7 +35,9 @@ public:
     }
 
     std::string toString() const override {
-        return "WRITE 0x" + toHex(address) + " " + std::to_string(value);
+        std::ostringstream oss;
+        oss << "WRITE 0x" << std::hex << std::uppercase << address << " 0x" << std::hex << std::uppercase << value;
+        return oss.str();
     }
 
 private:

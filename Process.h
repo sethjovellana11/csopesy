@@ -75,4 +75,6 @@ private:
     int memorySize = 0; // Total memory allocated to this process in bytes
     std::unordered_map<uint16_t, uint16_t> emulatedMemory; // address → value map
     bool terminated = false;
+    bool shutdownInProgress = false;
+    std::string shutdownReason;
 };

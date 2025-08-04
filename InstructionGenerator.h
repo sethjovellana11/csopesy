@@ -22,13 +22,17 @@ public:
         : maxDepth(maxDepth), rng(rd()) {}
 
     std::vector<std::shared_ptr<ICommand>> generateInstructions(int count, int currentDepth = 0);
+    std::vector<std::shared_ptr<ICommand>> generate(const std::string& input);
 
 private:
     std::random_device rd;
     std::mt19937 rng;
     int maxDepth;
     std::unordered_set<std::string> declaredVars;
-    std::vector<std::string> varPool = {"a", "b", "c", "d", "e"};
+    std::vector<std::string> varPool = {"a", "b", "c", "d", "e", "f", "g", "h",
+                                        "i", "j", "k", "l", "m", "n", "o", "p",
+                                        "q", "r", "s", "t", "u", "v", "w", "x",
+                                        "y", "z", "aa", "ab", "ac", "ad", "ae", "af"};
 
     std::string getRandomVar(bool mustExist = false);
     uint16_t getRandomValue();

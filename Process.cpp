@@ -147,16 +147,33 @@ bool Process::isTerminated() const {
 }
 
 void Process::shutdown(const std::string& reason) {
+    // Immediately set shutdown flags to halt all execution
     terminated = true;
+    shutdownInProgress = true;
+    shutdownReason = reason;
 
+    // Immediately deallocate memory to prevent saving
+    if (getIsAllocated()) {
+        // Memory will be deallocated by scheduler when it detects termination
+    }
+
+    // Clear all process state to prevent saving
+    variables.clear();
+    emulatedMemory.clear();
+    
+    // Prevent any further instruction execution by setting instruction count to max
+    instructionCount = instructions.size();
+
+    // Log shutdown but don't save to persistent storage
     std::string logPath = "logs/" + screenInfo.getName() + ".txt";
     std::ofstream log(logPath, std::ios::app);
-
-    log << "[!!! SHUTDOWN !!!] "
+    log << "[!!! IMMEDIATE SHUTDOWN !!!] "
         << "Process: " << screenInfo.getName()
-        << " | Reason: " << reason << "\n";
+        << " | Reason: " << reason 
+        << " | Execution halted immediately\n";
     log.close();
 
-    addLog("[SHUTDOWN] Process terminated due to: " + reason);
+    // Add to logs but mark as shutdown
+    addLog("[IMMEDIATE SHUTDOWN] Process terminated immediately due to: " + reason);
 }
 

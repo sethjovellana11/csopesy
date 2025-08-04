@@ -74,6 +74,30 @@ void Scheduler::createProcess(const std::string& procName, int instMin, int inst
     this->addProcess(p);       
 }
 
+void Scheduler::createProcessIns(const std::string& name, int memorySize, std::vector<std::shared_ptr<ICommand>> instructions) {
+    Process* p = new Process(name, allProcesses.size() + 1);
+
+
+    for (auto& instr : instructions) {
+       
+        p->addInstruction(std::move(instr)); 
+    }
+
+    p->setDelay(delayPerInstruction);
+
+    if (memorySize == -1) {
+        memorySize = memManager.randomMemoryForProcess();
+    }
+
+    int pages = memManager.calculatePagesRequired(memorySize);
+    p->setPagesRequired(pages);
+    p->setMemory(memorySize);
+    p->getScreenInfo().setTotalLine(instructions.size());
+    p->getScreenInfo().setTotalMem(memorySize);
+
+    this->addProcess(p);
+}
+
 void Scheduler::createProcessesStart(int batch_process_freq, int instMin, int instMax) {
     if (isCreatingProcesses) return;
 
@@ -143,6 +167,41 @@ void Scheduler::cpuWorker(int coreID) {
                 cv.wait(lock);
             }
 
+            // Check for terminated processes and skip them
+            while (!processQueue.empty()) {
+                current = processQueue.front();
+                if (current->isTerminated()) {
+                    // Immediately deallocate memory for terminated processes
+                    memManager.deallocate(current->getID());
+                    memManager.unregisterProcess(current->getID());
+                    current->setIsAllocated(false);
+                    
+                    // Remove from running screens if present
+                    {
+                        std::lock_guard<std::mutex> lock(runningMutex);
+                        auto it = std::remove_if(runningScreens.begin(), runningScreens.end(),
+                            [&](const ScreenInfo& s) {
+                                return s.getName() == current->getScreenInfo().getName();
+                            });
+                        runningScreens.erase(it, runningScreens.end());
+                    }
+                    
+                    // Add to finished screens
+                    {
+                        std::lock_guard<std::mutex> lock(finishedMutex);
+                        finishedScreens.push_back(current->getScreenInfo());
+                    }
+                    
+                    processQueue.pop();
+                    continue;
+                }
+                break;
+            }
+            
+            if (processQueue.empty()) {
+                continue;
+            }
+            
             current = processQueue.front();
             processQueue.pop();
         }
