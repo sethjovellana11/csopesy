@@ -84,13 +84,12 @@ std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std:
                 return {};
             }
 
-            uint16_t address = std::stoi(addrStr, nullptr, 0);
+            uint16_t address = std::stoi(addrStr, nullptr, 16);
             if (std::isdigit(valStr[0])) {
                 uint16_t val = std::stoi(valStr);
                 commands.push_back(std::make_shared<WriteCommand>(address, val));
             } else {
-                std::cout << "WRITE using variable not supported yet" << std::endl;
-                return {};
+                commands.push_back(std::make_shared<WriteCommand>(address, valStr));
             }
         }
         else if (command == "READ") {
@@ -101,7 +100,7 @@ std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std:
                 return {};
             }
 
-            uint16_t address = std::stoi(addrStr, nullptr, 0);
+            uint16_t address = std::stoi(addrStr, nullptr, 16);
             commands.push_back(std::make_shared<ReadCommand>(var, address));
             declaredVars.insert(var);
         }

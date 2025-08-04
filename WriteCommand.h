@@ -9,10 +9,14 @@
 class WriteCommand : public ICommand {
     uint16_t address;
     uint16_t value;
+    std::string var;
 
 public:
     WriteCommand(uint16_t address, uint16_t value)
-        : address(address), value(value) {}
+        : address(address), value(value), var("") {}
+
+    WriteCommand(uint16_t address, std::string var)
+        : address(address), value(0), var(var) {}
 
     void execute(Process& process) override {
         try {
@@ -20,7 +24,14 @@ public:
                 process.shutdown("Access violation: WRITE to invalid address 0x" + toHex(address));
                 return;
             }
-
+            // Accesses variable if given
+            if(var != ""){
+                if(process.getVariables().find(var) == process.getVariables().end()) {
+                    process.shutdown("Access violation: variable " + var + " does not exist.");
+                }
+                value = process.getVariables()[var];
+            }
+                
             process.writeMemory(address, value);
 
             std::ostringstream oss;
