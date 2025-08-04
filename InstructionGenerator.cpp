@@ -28,8 +28,112 @@ uint16_t InstructionGenerator::getRandomValue() {
     return valDist(rng);
 }
 
+std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std::string& input) {
+    std::vector<std::shared_ptr<ICommand>> commands;
+    std::stringstream ss(input);
+    std::string token;
+    int instructionCount = 0;
+
+    while (std::getline(ss, token, ';')) {
+        ++instructionCount;
+        if (instructionCount > 50) {
+            std::cout << "invalid command: more than 50 instructions" << std::endl;
+            return {};
+        }
+
+        std::istringstream line(token);
+        std::string command;
+        line >> command;
+
+        if (command == "DECLARE") {
+            std::string var;
+            uint16_t value;
+            line >> var >> value;
+            if (var.empty()) {
+                std::cout << "invalid DECLARE syntax" << std::endl;
+                return {};
+            }
+            commands.push_back(std::make_shared<DeclareCommand>(var, value));
+            declaredVars.insert(var);
+        }
+        else if (command == "ADD") {
+            std::string target, op1, op2;
+            line >> target >> op1 >> op2;
+            if (target.empty() || op1.empty() || op2.empty()) {
+                std::cout << "invalid ADD syntax" << std::endl;
+                return {};
+            }
+            commands.push_back(std::make_shared<AddCommand>(target, op1, op2));
+            declaredVars.insert(target);
+        }
+        else if (command == "SUB") {
+            std::string target, op1, op2;
+            line >> target >> op1 >> op2;
+            if (target.empty() || op1.empty() || op2.empty()) {
+                std::cout << "invalid SUB syntax" << std::endl;
+                return {};
+            }
+            commands.push_back(std::make_shared<SubtractCommand>(target, op1, op2));
+            declaredVars.insert(target);
+        }
+        else if (command == "WRITE") {
+            std::string addrStr, valStr;
+            line >> addrStr >> valStr;
+            if (addrStr.empty() || valStr.empty()) {
+                std::cout << "invalid WRITE syntax" << std::endl;
+                return {};
+            }
+
+            uint16_t address = std::stoi(addrStr, nullptr, 0);
+            uint16_t value = std::stoi(valStr, nullptr, 0);
+            commands.push_back(std::make_shared<WriteCommand>(address, value));
+        }
+        else if (command == "READ") {
+            std::string var, addrStr;
+            line >> var >> addrStr;
+            if (var.empty() || addrStr.empty()) {
+                std::cout << "invalid READ syntax" << std::endl;
+                return {};
+            }
+
+            uint16_t address = std::stoi(addrStr, nullptr, 0);
+            commands.push_back(std::make_shared<ReadCommand>(var, address));
+            declaredVars.insert(var);
+        }
+        else if (command == "PRINT") {
+            std::string var;
+            line >> var;
+            if (var.empty()) {
+                std::cout << "invalid PRINT syntax" << std::endl;
+                return {};
+            }
+            commands.push_back(std::make_shared<PrintCommand>(var));
+        }
+        else if (command == "SLEEP") {
+            int ticks;
+            line >> ticks;
+            if (ticks <= 0) {
+                std::cout << "invalid SLEEP syntax" << std::endl;
+                return {};
+            }
+            commands.push_back(std::make_shared<SleepCommand>(ticks));
+        }
+        else {
+            std::cout << "invalid command: " << command << std::endl;
+            return {};
+        }
+    }
+
+    if (instructionCount < 1) {
+        std::cout << "invalid command: less than 1 instruction" << std::endl;
+        return {};
+    }
+
+    return commands;
+}
+
 std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int currentDepth) {
-    std::uniform_int_distribution<int> typeDist(0, currentDepth < maxDepth ? 5 : 4);
+    std::uniform_int_distribution<int> typeDist(0, currentDepth < maxDepth ? 7 : 6);
     int type = typeDist(rng);
 
     switch (type) {
@@ -43,7 +147,6 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
             std::string op1 = getRandomVar(true);           // Must already exist
             std::string op2 = getRandomVar(true);
             return std::make_shared<AddCommand>(target, op1, op2);
-        
         }
 
         case 2: { // SUBTRACT
@@ -55,7 +158,7 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
 
         case 3: { // PRINT
             std::string var = getRandomVar(true);
-            return std::make_shared<PrintCommand>("Print value of " + var + ": +" + var);
+            return std::make_shared<PrintCommand>(var);
         }
 
         case 4: { // SLEEP
@@ -70,6 +173,19 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
             int bodyLength = lenDist(rng);
             auto body = generateInstructions(bodyLength, currentDepth + 1);
             return std::make_shared<ForCommand>(body, repeatCount);
+        }
+        case 6: { // READ
+            std::string var = getRandomVar(false);  // store into a new variable
+            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
+            uint16_t addr = addrDist(rng) & 0xFFFE;  // align to even byte for 2-byte read
+            return std::make_shared<ReadCommand>(var, addr);
+        }
+
+        case 7: { // WRITE
+            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
+            uint16_t addr = addrDist(rng) & 0xFFFE;  // ensure 2-byte aligned
+            uint16_t val = getRandomValue();
+            return std::make_shared<WriteCommand>(addr, val);
         }
 
         default:

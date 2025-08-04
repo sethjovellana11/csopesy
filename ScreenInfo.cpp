@@ -18,6 +18,14 @@ std::string ScreenInfo::getCurrentTimestamp() {
     return ss.str();
 }
 
+void ScreenInfo::setTotalMem(int mem){
+    totalMem = mem;
+}
+
+void ScreenInfo::displaySmi() const {
+    std::cout   <<  name << ":\t" << totalMem << std::endl;
+}
+
 void ScreenInfo::display() const {
     std::cout   <<  name << "\t" << "(" << timestamp << ")" << "\t\t"  
                 << ((currentLine == totalLine) ? "FINISHED" : ("CORE: " + std::to_string(coreID)+"  ")) << "\t"

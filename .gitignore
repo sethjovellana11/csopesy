@@ -7,7 +7,7 @@ x64/
 csopesy.vcxproj*
 Process*.txt
 output/*
-
+*.exe
 csopesylog.txt
 
 libgcc_s_seh-1.dll

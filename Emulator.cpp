@@ -3,8 +3,12 @@
 #include "Scheduler.h"
 #include "InstructionGenerator.h"
 #include <string>
+#include <memory>
 #include <iostream>
 #include <cstdlib>
+#include <iomanip>
+#include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -76,7 +80,8 @@ void Emulator::initialize() {
         else if (key == "delays-per-exec") this->delay_per_exec = std::stoi(value);
         else if (key == "max-overall-mem") this->max_overall_mem = std::stoi(value);
         else if (key == "mem-per-frame") this->mem_per_frame = std::stoi(value);
-        else if (key == "mem-per-proc") this->mem_per_proc = std::stoi(value);
+        else if (key == "min-mem-per-proc") this->min_mem_per_proc = std::stoi(value);
+        else if (key == "max-mem-per-proc") this->max_mem_per_proc = std::stoi(value);
     }
 
     if(scheduler_type == "rr"){
@@ -89,7 +94,12 @@ void Emulator::initialize() {
     
     isInitialized = true;
     scheduler->setDelay(delay_per_exec);
-    scheduler->init_mem_manager(this->max_overall_mem, this->mem_per_frame, this->mem_per_proc);
+    scheduler->init_mem_manager(
+        this->max_overall_mem, 
+        this->mem_per_frame, 
+        this->min_mem_per_proc, 
+        this->max_mem_per_proc
+    );
     std::cout << "Emulator Initialized!" << std::endl;
     config.close();
     std::thread([this]() { scheduler->run(); }).detach();
@@ -198,28 +208,40 @@ void Emulator::handleMainCommand(const std::string& input) {
     } else if (input.rfind("screen -s ", 0) == 0) {
         if (checkInitialized()) {
             clearScreen();
-            std::string name = input.substr(10);
-            if (!name.empty()) {
+
+            std::istringstream iss(input.substr(10));  
+            std::string name;
+            int memorySize = -1;
+
+            iss >> name >> memorySize;
+
+            auto isPowerOfTwo = [](int x) {
+                return x > 0 && (x & (x - 1)) == 0;
+            };
+
+            if (name.empty()) {
+                std::cout << "Missing process name after 'screen -s'" << std::endl;
+            } else if (memorySize < 64 || memorySize > 65536 || !isPowerOfTwo(memorySize)) {
+                std::cout << "Invalid memory allocation. Memory must be a power of two between 64 and 65536 bytes." << std::endl;
+            } else {
                 Process* p = scheduler->findProcess(name);
+
                 if (p == nullptr) {
-                    scheduler->createProcess(name, min_ins, max_ins);
-                    p = scheduler->findProcess(name); 
+                    scheduler->createProcess(name, min_ins, max_ins, memorySize);
+                    p = scheduler->findProcess(name);
                 }
-                
-                if (p && p->isComplete()){
-                     std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
+
+                if (p && p->isComplete()) {
+                    std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
                 } else if (p) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
                     std::cout << std::endl;
-                    //showProcessSMI(name);
                 }
-            } else {
-                std::cout << "Missing process name after 'screen -s'" << std::endl;
             }
-        } 
-    } else if (input.rfind("screen -r ", 0) == 0) { // New command logic
+        }
+    }else if (input.rfind("screen -r ", 0) == 0) { // New command logic
         if (checkInitialized()) {
             clearScreen();
             std::string name = input.substr(10);
@@ -241,7 +263,64 @@ void Emulator::handleMainCommand(const std::string& input) {
                 std::cout << "Missing process name after 'screen -r" << std::endl;
             }
         }
-    } else if (input == "screen -ls") {
+    }  else if (input.rfind("screen -c ", 0) == 0) {
+        if (checkInitialized()) {
+            std::istringstream iss(input.substr(10));
+            std::string name;
+            int memorySize;
+            std::string instructionBlock;
+            InstructionGenerator generator;
+            
+            iss >> name >> memorySize;
+            std::getline(iss, instructionBlock);
+
+            instructionBlock.erase(0, instructionBlock.find_first_of("\"") + 1);
+            instructionBlock.erase(instructionBlock.find_last_of("\""));
+
+            // Validate memory
+            auto isPowerOfTwo = [](int x) { return x > 0 && (x & (x - 1)) == 0; };
+            if (memorySize < 64 || memorySize > 65536 || !isPowerOfTwo(memorySize)) {
+                std::cout << "Invalid memory allocation. Memory must be a power of two between 64 and 65536 bytes." << std::endl;
+                return;
+            }
+
+            std::vector<std::string> instructions;
+            std::istringstream commandStream(instructionBlock);
+            std::string command;
+            while (std::getline(commandStream, command, ';')) {
+                if (!command.empty()) {
+                    instructions.push_back(command);
+                }
+            }
+
+            if (instructions.empty() || instructions.size() > 50) {
+                std::cout << "Invalid command: instruction count must be between 1 and 50." << std::endl;
+                return;
+            }
+
+            std::vector<std::shared_ptr<ICommand>> commands;
+            for (const std::string& inst : instructions) {
+                auto cmds = generator.generate(inst);  
+                
+                if (cmds.empty()) {
+                    std::cout << "Invalid command: '" << inst << "'" << std::endl;
+                    return;
+                }
+
+                for (auto& cmd : cmds) {
+                    commands.push_back(cmd); 
+                }
+            }
+
+            if (scheduler->findProcess(name)) {
+                std::cout << "Process '" << name << "' already exists." << std::endl;
+                return;
+            }
+
+            scheduler->createProcessIns(name, memorySize, std::move(commands));
+            std::cout << "Process '" << name << "' created with custom instructions." << std::endl;
+        }
+    }else if (input == "screen -ls") {
         if (checkInitialized()) {
             clearScreen();
             scheduler->printScreenList();
@@ -266,7 +345,23 @@ void Emulator::handleMainCommand(const std::string& input) {
             scheduler->writeScreenListToFile("csopesylog.txt");
     } else if (input == "clear") {
         clearScreen();
-    } else if (input == "exit") {
+    } else if (input == "vmstat") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printVMStats();
+    }else if (input == "process-smi") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printProcessSmi();
+    }else if (input == "display-frames") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printMemoryStatus();
+    }else if (input == "backing-store") {
+    if (checkInitialized()) 
+        clearScreen();
+        scheduler->printBackingStoreStatus();
+    }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;
     } else if (input.empty()) {
@@ -275,6 +370,7 @@ void Emulator::handleMainCommand(const std::string& input) {
         std::cout << "Unknown command: " << input << std::endl;
     }
 }
+
 
 void Emulator::run() {
     std::string input;

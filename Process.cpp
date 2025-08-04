@@ -108,3 +108,72 @@ int Process::getTotalInstructions() const {
 std::unordered_map<std::string, int32_t>& Process::getVariables() {
     return variables;
 }
+
+int Process::getCurrentPage() const {
+    int page = instructionCount * pagesRequired / static_cast<int>(instructions.size());
+
+    return std::min(page, pagesRequired - 1);
+}
+
+void Process::incrementCurrentPage() {
+    currentPage = (currentPage + 1) % pagesRequired;
+}
+
+uint16_t Process::readMemory(uint16_t address) const {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid read at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    auto it = emulatedMemory.find(address);
+    if (it != emulatedMemory.end()) {
+        return it->second;
+    }
+
+    return 0; // uninitialized memory defaults to 0
+}
+
+void Process::writeMemory(uint16_t address, uint16_t value) {
+    if (address + 1 >= memorySize || (address % 2 != 0)) {
+        throw std::runtime_error("Memory Access Violation: Invalid write at address 0x" + 
+                                 std::to_string(address));
+    }
+
+    emulatedMemory[address] = value;
+}
+
+bool Process::isTerminated() const {
+    return terminated;
+}
+
+void Process::shutdown(const std::string& reason) {
+    // Immediately set shutdown flags to halt all execution
+    terminated = true;
+    shutdownInProgress = true;
+    shutdownReason = reason;
+
+    // Immediately deallocate memory to prevent saving
+    if (getIsAllocated()) {
+        // Memory will be deallocated by scheduler when it detects termination
+    }
+
+    // Clear all process state to prevent saving
+    variables.clear();
+    emulatedMemory.clear();
+    
+    // Prevent any further instruction execution by setting instruction count to max
+    instructionCount = instructions.size();
+
+    // Log shutdown but don't save to persistent storage
+    std::string logPath = "logs/" + screenInfo.getName() + ".txt";
+    std::ofstream log(logPath, std::ios::app);
+    log << "[!!! IMMEDIATE SHUTDOWN !!!] "
+        << "Process: " << screenInfo.getName()
+        << " | Reason: " << reason 
+        << " | Execution halted immediately\n";
+    log.close();
+
+    // Add to logs but mark as shutdown
+    addLog("[IMMEDIATE SHUTDOWN] Process terminated immediately due to: " + reason);
+}
+
