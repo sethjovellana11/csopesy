@@ -52,23 +52,24 @@ bool Scheduler::getIsCreatingProcesses() const{
 void Scheduler::createProcess(const std::string& procName, int instMin, int instMax, int memory){
     Process* p = new Process(procName, allProcesses.size() + 1);
 
-    InstructionGenerator gen;
-    int instCount = instMin + (rand() % (instMax - instMin + 1));
-    auto instructions = gen.generateInstructions(instCount);
-
-    for (auto& instr : instructions)
-        p->addInstruction(instr);
-
-    p->setDelay(delayPerInstruction);
-
     if(memory == -1)
     {
         memory = memManager.randomMemoryForProcess(); 
     }
+    p->setMemory(memory);
+    
+
+    InstructionGenerator gen;
+    int instCount = instMin + (rand() % (instMax - instMin + 1));
+    auto instructions = gen.generateInstructions(instCount, 0, memory);
+
+    for (auto& instr : instructions)
+        p->addInstruction(instr);
+    p->setDelay(delayPerInstruction);
     
     int pages = memManager.calculatePagesRequired(memory); 
     p->setPagesRequired(pages);
-    p->setMemory(memory);
+    
     p->getScreenInfo().setTotalLine(instCount);
     p->getScreenInfo().setTotalMem(memory);
     this->addProcess(p);       
@@ -88,10 +89,9 @@ void Scheduler::createProcessIns(const std::string& name, int memorySize, std::v
     if (memorySize == -1) {
         memorySize = memManager.randomMemoryForProcess();
     }
-
+    p->setMemory(memorySize);
     int pages = memManager.calculatePagesRequired(memorySize);
     p->setPagesRequired(pages);
-    p->setMemory(memorySize);
     p->getScreenInfo().setTotalLine(instructions.size());
     p->getScreenInfo().setTotalMem(memorySize);
 

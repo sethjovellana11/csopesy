@@ -6,6 +6,7 @@
 
 class PrintCommand : public ICommand {
     std::string varName;
+    std::string outputInt;
 
 public:
     PrintCommand(const std::string& varName) : varName(varName) {}
@@ -15,6 +16,7 @@ public:
         std::string output;
 
         if (vars.count(varName)) {
+            outputInt = std::to_string(vars.at(varName));
             output = varName + " = " + std::to_string(vars.at(varName));
         } else {
             output = "Variable '" + varName + "' is undefined";
@@ -29,6 +31,6 @@ public:
     }
 
     std::string toString() const override {
-        return "PRINT " + varName;
+        return "PRINT " + varName + " = " +  outputInt;
     }
 };

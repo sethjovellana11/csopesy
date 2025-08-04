@@ -17,7 +17,7 @@ public:
     void execute(Process& process) override {
         try {
             if (address >= process.getMemory()) {
-                process.shutdown("Access violation: READ " + varName + " at invalid address 0x" + toHex(address));
+                process.shutdown("Access violation: READ " + varName + " at invalid address 0x" + toHex(address) + " MAX " + toHex(process.getMemory()));
                 return;
             }
 

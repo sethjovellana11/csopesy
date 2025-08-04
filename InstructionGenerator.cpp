@@ -138,9 +138,10 @@ std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std:
 }
 
 
-std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int currentDepth) {
-    std::uniform_int_distribution<int> typeDist(0, currentDepth < maxDepth ? 7 : 6);
+std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int currentDepth, int mem) {
+    std::uniform_int_distribution<int> typeDist(0, 7);
     int type = typeDist(rng);
+    uint16_t maxAddr = static_cast<uint16_t>(std::max(2, mem - 2));
 
     switch (type) {
         case 0: { // DECLARE
@@ -178,19 +179,23 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
             std::uniform_int_distribution<int> lenDist(1, 3);
             int repeatCount = repeatDist(rng);
             int bodyLength = lenDist(rng);
-            auto body = generateInstructions(bodyLength, currentDepth + 1);
+            auto body = generateInstructions(bodyLength, currentDepth + 1, mem);
             return std::make_shared<ForCommand>(body, repeatCount);
         }
-        case 6: { // READ
-            std::string var = getRandomVar(false);  // store into a new variable
-            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
-            uint16_t addr = addrDist(rng) & 0xFFFE;  // align to even byte for 2-byte read
+       case 6: { // READ
+            std::string var = getRandomVar(false);
+            uint16_t maxSlot = static_cast<uint16_t>((mem / 2) - 1);
+            //std::cout << mem << std::endl;
+            std::uniform_int_distribution<uint16_t> addrDist(0, maxSlot);
+            uint16_t addr = addrDist(rng) * 2;
             return std::make_shared<ReadCommand>(var, addr);
         }
 
         case 7: { // WRITE
-            std::uniform_int_distribution<uint16_t> addrDist(0x0000, 0xFFFF);
-            uint16_t addr = addrDist(rng) & 0xFFFE;  // ensure 2-byte aligned
+            uint16_t maxSlot = static_cast<uint16_t>((mem / 2) - 1);
+            //std::cout << mem << std::endl;
+            std::uniform_int_distribution<uint16_t> addrDist(0, maxSlot);
+            uint16_t addr = addrDist(rng) * 2;
             uint16_t val = getRandomValue();
             return std::make_shared<WriteCommand>(addr, val);
         }
@@ -200,10 +205,10 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
     }
 }
 
-std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generateInstructions(int count, int currentDepth) {
+std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generateInstructions(int count, int currentDepth, int mem) {
     std::vector<std::shared_ptr<ICommand>> result;
     for (int i = 0; i < count; ++i) {
-        result.push_back(generateRandomInstruction(currentDepth));
+        result.push_back(generateRandomInstruction(currentDepth, mem));
     }
     return result;
 }

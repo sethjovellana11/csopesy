@@ -37,7 +37,7 @@ public:
     int getPagesRequired() const { return pagesRequired; }
 
     void setMemory(int mem) { memory = mem; memorySize = mem; memPerPage = static_cast<double>(memory) / pagesRequired; }
-    int getMemory() const { return memory; }
+    int getMemory() const { return memorySize; }
     int getMemPerPage() const { return memPerPage; }
 
     //SYMBOL TABLE
