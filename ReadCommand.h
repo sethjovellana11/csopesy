@@ -26,6 +26,8 @@ public:
             if (!process.getSymbolTable().insert(varName, value)) {
                 process.addLog("Symbol table full. READ value not stored in variable '" + varName + "'");
             }
+            else
+                process.getVariables()[varName] = value;
 
             std::ostringstream oss;
             oss << "(" << ScreenInfo::getCurrentTimestamp() << ") Core:" << process.getScreenInfo().getCoreID()
