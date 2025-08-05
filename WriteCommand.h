@@ -34,6 +34,7 @@ public:
                 }
                 if (goAhead){
                     value = process.getVariables()[var];
+                    process.writeMemory(address, value);
                 }
                 
             }

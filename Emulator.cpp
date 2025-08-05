@@ -62,7 +62,8 @@ void Emulator::printHeader() {
     std::cout << "      \\  \\:\\        \\  \\::/       \\  \\::/          \\__\\/      \\  \\:\\        \\  \\::/      \\__\\/      \n";
     std::cout << "       \\__\\/         \\__\\/         \\__\\/                       \\__\\/         \\__\\/                   \n";
     std::cout << "\033[33mHello, welcome to CSOPESY commandline!\033[0m\n";
-    std::cout << "\033[36mCommands: 'initialize', 'scheduler-start', 'scheduler-stop', 'screen', 'report-util', 'clear', 'exit'.\033[0m\n";
+    std::cout << "\033[36mCommands: 'initialize', 'scheduler-start', 'scheduler-stop', 'screen -s', 'screen -r', 'screen -ls', 'screen -c'.\033[0m\n";
+    std::cout << "\033[36mCommands: 'display-frames', 'backing-store', 'vmstat', 'process-smi', 'report-util', 'clear', 'exit'.\033[0m\n";
 }
 
 void Emulator::initialize() {
@@ -355,20 +356,28 @@ void Emulator::handleMainCommand(const std::string& input) {
         clearScreen();
     } else if (input == "vmstat") {
     if (checkInitialized()) 
-        clearScreen();
-        scheduler->printVMStats();
+        {
+            clearScreen();
+            scheduler->printVMStats();
+        }
     }else if (input == "process-smi") {
     if (checkInitialized()) 
-        clearScreen();
-        scheduler->printProcessSmi();
+        {
+            clearScreen();
+            scheduler->printProcessSmi();
+        }
     }else if (input == "display-frames") {
     if (checkInitialized()) 
-        clearScreen();
-        scheduler->printMemoryStatus();
+        {
+            clearScreen();
+            scheduler->printMemoryStatus();
+        }
     }else if (input == "backing-store") {
     if (checkInitialized()) 
-        clearScreen();
-        scheduler->printBackingStoreStatus();
+        {
+            clearScreen();
+            scheduler->printBackingStoreStatus();
+        }
     }else if (input == "exit") {
         std::cout << "Exiting emulator..." << std::endl;
         shouldExit = true;

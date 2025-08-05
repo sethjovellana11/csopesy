@@ -196,7 +196,8 @@ void Scheduler::cpuWorker(int coreID) {
                 bool success = memManager.accessPage(current->getID(), page);
 
                 if (!success) {
-                    std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
+                    //checks for page fault if needed page is not in frame, uncomment to see printed
+                    //std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
                 }
 
                 if ((instr == "READ" || "WRITE" || "ADD" || "SUB" || "PRINT" || "DECLARE") && page != 0)
@@ -204,7 +205,8 @@ void Scheduler::cpuWorker(int coreID) {
                     bool wasSymInMem = memManager.accessPage(current->getID(), 0);
                     if(!wasSymInMem)
                     {
-                        std::cout << "[Page Fault] Process " << current->getID() << " requesting symbol table page" << "\n";
+                        //checks for page fault if symbol table segment (page 0) is not in frame, uncomment to see printed
+                        //std::cout << "[Page Fault] Process " << current->getID() << " requesting symbol table page" << "\n";
                     }
                 }
 
@@ -345,7 +347,8 @@ void Scheduler::printScreen(const std::string& screenName) const {
     //std::cout << "Screen \"" << screenName << "\" not found in running or finished screens.\n";
 }
 
-void Scheduler::printProcessSmi() const{
+void Scheduler::
+printProcessSmi() const{
     int usedCores = 0;
     
     {

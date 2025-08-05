@@ -187,12 +187,15 @@ bool MemoryManager::isPageInMemory(int processID, int pageNum) const {
     return it->second.count(pageNum) > 0;
 }
 
+
+
 bool MemoryManager::isPageInBackingStore(int processID, int pageNum) const {
     auto it = backingStore.find(processID);
     if (it == backingStore.end()) return false;
     return it->second.count(pageNum) > 0;
 }
-
+// NOT USED
+/*
 bool MemoryManager::loadPageFromBackingStore(int processID, int pageNum) {
     if (!isPageInBackingStore(processID, pageNum)) return false;
 
@@ -239,6 +242,7 @@ bool MemoryManager::loadPageFromBackingStore(int processID, int pageNum) {
 
     return true;
 }
+*/
 
 // For paging
 /*
