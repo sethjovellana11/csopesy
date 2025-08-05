@@ -34,4 +34,8 @@ public:
     return "FOR loop x" + std::to_string(repeats) + " with " +
            std::to_string(instructions.size()) + " instructions";
     }
+
+    std::string getName() const override {
+        return "FOR";
+    }
 };

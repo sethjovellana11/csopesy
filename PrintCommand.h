@@ -33,4 +33,8 @@ public:
     std::string toString() const override {
         return "PRINT " + varName + " = " +  outputInt;
     }
+
+    std::string getName() const override {
+        return "PRINT";
+    }
 };

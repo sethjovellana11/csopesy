@@ -17,4 +17,8 @@ public:
     std::string toString() const override {
     return "SLEEP for " + std::to_string(ticks) + " ticks";
     }
+
+    std::string getName() const override {
+        return "SLEEP";
+    }
 };

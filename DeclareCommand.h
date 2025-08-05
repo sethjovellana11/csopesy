@@ -25,4 +25,8 @@ public:
     std::string toString() const override{
     return "DECLARE " + var + " = " + std::to_string(value);
     }
+
+    std::string getName() const override {
+        return "DECLARE";
+    }
 };

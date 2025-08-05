@@ -233,7 +233,11 @@ void Emulator::handleMainCommand(const std::string& input) {
 
                 if (p && p->isComplete()) {
                     std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
-                } else if (p) {
+                } 
+                else if (p && p->isTerminated()){
+                    p->displayShutdown();
+                } 
+                else if (p) {
                     currentScreen = name;
                     inScreen = true;
                     p->getScreenInfo().display();
@@ -250,6 +254,10 @@ void Emulator::handleMainCommand(const std::string& input) {
                 if (p && p->isComplete()){
                      std::cout << "Process '" << name << "' has already finished. Cannot attach to screen." << std::endl;
                 } 
+                else if (p && p->isTerminated())
+                {
+                    p->displayShutdown();
+                }
                 else if(p !=  nullptr){
                     currentScreen = name;
                     inScreen = true;
@@ -318,7 +326,7 @@ void Emulator::handleMainCommand(const std::string& input) {
             }
 
             scheduler->createProcessIns(name, memorySize, std::move(commands));
-            std::cout << "Process '" << name << "' created with custom instructions." << std::endl;
+            //std::cout << "Process '" << name << "' created with custom instructions." << std::endl;
         }
     }else if (input == "screen -ls") {
         if (checkInitialized()) {

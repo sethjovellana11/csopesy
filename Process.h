@@ -23,6 +23,8 @@ public:
     ScreenInfo& getScreenInfo();
     void updateScreenInfo();
 
+    void displayShutdown();
+
     // New methods to support process-smi
     void addLog(const std::string& log_message);
     std::vector<std::string> getLogs();
@@ -31,7 +33,7 @@ public:
 
     // Demand Paging
     int getCurrentPage() const;                         
-
+    std::string getCurrentInstructionName() const;
     void incrementCurrentPage();
     void setPagesRequired(int pages) { pagesRequired = pages; }
     int getPagesRequired() const { return pagesRequired; }
@@ -60,6 +62,8 @@ private:
     int memPerPage;
     int delayPerInstruction = 50;
     bool memoryAllocated = false;
+
+    std::string shutdownString;
     
     ScreenInfo screenInfo;
     std::vector<std::shared_ptr<ICommand>> instructions;

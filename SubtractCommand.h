@@ -35,4 +35,8 @@ public:
     std::string toString() const override {
         return "Subtract " + target + " = " + op1 + " - " + op2 + " -> " + result;
     }
+
+    std::string getName() const override {
+        return "SUB";
+    }
 };

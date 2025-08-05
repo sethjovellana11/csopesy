@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <iostream>
 #include <chrono>
 
 Process::Process(const std::string& name, int id)
@@ -66,6 +67,11 @@ void Process::executeNextInstruction() {
     screenInfo.setCurrentLine(instructionCount);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerInstruction));
+}
+
+std::string Process::getCurrentInstructionName() const {
+    if (instructionCount >= instructions.size()) return "";
+    return instructions[instructionCount]->getName();
 }
 
 bool Process::isComplete() const {
@@ -158,5 +164,10 @@ void Process::shutdown(const std::string& reason) {
     log.close();
 
     addLog("[SHUTDOWN] Process terminated due to: " + reason);
+    std::string timeStamp = screenInfo.getCurrentTimestamp();
+    shutdownString = timeStamp + "[SHUTDOWN] Process terminated due to: " + reason;
 }
 
+void Process::displayShutdown(){
+    std::cout << shutdownString << std::endl;
+}

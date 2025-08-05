@@ -189,12 +189,23 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (mode == SchedulingMode::fcfs) {
-            while (!current->isComplete() && running) {
+            while (!current->isComplete() && !current->isTerminated() && running) {
                 int page = current->getCurrentPage();
+                auto instr = current->getCurrentInstructionName();
 
                 bool success = memManager.accessPage(current->getID(), page);
+
                 if (!success) {
                     std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
+                }
+
+                if ((instr == "READ" || "WRITE" || "ADD" || "SUB" || "PRINT" || "DECLARE") && page != 0)
+                {
+                    bool wasSymInMem = memManager.accessPage(current->getID(), 0);
+                    if(!wasSymInMem)
+                    {
+                        std::cout << "[Page Fault] Process " << current->getID() << " requesting symbol table page" << "\n";
+                    }
                 }
 
                 current->executeNextInstruction();
@@ -213,8 +224,9 @@ void Scheduler::cpuWorker(int coreID) {
         }
 
         if (mode == SchedulingMode::rr) {
-            for (int i = 0; i < quantumCount && !current->isComplete() && running; ++i) {
+            for (int i = 0; i < quantumCount && !current->isComplete() && running && !current->isTerminated(); ++i) {
                 int page = current->getCurrentPage();
+                auto instr = current->getCurrentInstructionName();
 
                 bool success = memManager.accessPage(current->getID(), page);
 
@@ -226,6 +238,15 @@ void Scheduler::cpuWorker(int coreID) {
 
                 if (!success) {
                     std::cout << "[Page Fault] Process " << current->getID() << " requesting page " << page << "\n";
+                }
+
+                if ((instr == "READ" || "WRITE" || "ADD" || "SUB" || "PRINT" || "DECLARE") && page != 0)
+                {
+                    bool wasSymInMem = memManager.accessPage(current->getID(), 0);
+                    if(!wasSymInMem)
+                    {
+                        std::cout << "[Page Fault] Process " << current->getID() << " requesting symbol table page" << "\n";
+                    }
                 }
 
                 current->executeNextInstruction();

@@ -34,4 +34,8 @@ public:
     std::string toString() const override {
         return "ADD " + target + " = " + op1 + " + " + op2 + " -> " + result;
     }
+
+    std::string getName() const override {
+        return "ADD";
+    }
 };
