@@ -337,8 +337,20 @@ int MemoryManager::processesInMemory() const {
 int MemoryManager::randomMemoryForProcess() const {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(min_mem_per_proc, max_mem_per_proc);
-    return dist(gen);
+
+    std::vector<int> powersOfTwo;
+    for (int value = 1; value <= max_mem_per_proc; value *= 2) {
+        if (value >= min_mem_per_proc) {
+            powersOfTwo.push_back(value);
+        }
+    }
+
+    if (powersOfTwo.empty()) {
+        throw std::runtime_error("No valid power-of-two values in range.");
+    }
+
+    std::uniform_int_distribution<> dist(0, powersOfTwo.size() - 1);
+    return powersOfTwo[dist(gen)];
 }
 
 int MemoryManager::calculatePagesRequired(int memoryRequired) const {
@@ -354,10 +366,8 @@ size_t MemoryManager::getUsedMemory() const {
 
     for (int pid : memory) {
         if (pid != -1) {
-            auto it = processRegistry.find(pid);
-            if (it != processRegistry.end() && it->second != nullptr) {
-                totalUsedMemory += it->second->getMemPerPage();
-            }
+            
+                totalUsedMemory += frame_size;
         }
     }
 

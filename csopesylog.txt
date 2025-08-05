@@ -1,19 +1,40 @@
 
 === System Statistics ===
-Total CPU Cores      : 4
-Cores In Use         : 0
-Available Cores      : 4
-CPU Utilization      : 0%
+Total CPU Cores      : 2
+Cores In Use         : 2
+Available Cores      : 0
+CPU Utilization      : 100%
 === Queued Process ===
-No queued process.
+Process18	(08/05/2025, 06:10:10 PM)		CORE: -1  	5 / 100
+Process23	(08/05/2025, 06:10:15 PM)		CORE: -1  	1 / 100
+Process1	(08/05/2025, 06:09:55 PM)		CORE: -1  	60 / 100
+Process14	(08/05/2025, 06:10:07 PM)		CORE: -1  	10 / 100
+Process15	(08/05/2025, 06:10:08 PM)		CORE: -1  	10 / 100
+Process24	(08/05/2025, 06:10:16 PM)		CORE: -1  	1 / 100
+Process3	(08/05/2025, 06:09:56 PM)		CORE: -1  	60 / 100
+Process6	(08/05/2025, 06:09:59 PM)		CORE: -1  	30 / 100
+Process5	(08/05/2025, 06:09:58 PM)		CORE: -1  	40 / 100
+Process8	(08/05/2025, 06:10:01 PM)		CORE: -1  	30 / 100
+Process19	(08/05/2025, 06:10:11 PM)		CORE: -1  	5 / 100
+Process25	(08/05/2025, 06:10:17 PM)		CORE: -1  	1 / 100
+Process20	(08/05/2025, 06:10:12 PM)		CORE: -1  	5 / 100
+Process4	(08/05/2025, 06:09:57 PM)		CORE: -1  	50 / 100
+Process26	(08/05/2025, 06:10:18 PM)		CORE: -1  	1 / 100
+Process11	(08/05/2025, 06:10:04 PM)		CORE: -1  	15 / 100
+Process12	(08/05/2025, 06:10:05 PM)		CORE: -1  	15 / 100
+Process7	(08/05/2025, 06:10:00 PM)		CORE: -1  	35 / 100
+Process16	(08/05/2025, 06:10:09 PM)		CORE: -1  	10 / 100
+Process27	(08/05/2025, 06:10:19 PM)		CORE: -1  	1 / 100
+Process21	(08/05/2025, 06:10:13 PM)		CORE: -1  	5 / 100
+Process28	(08/05/2025, 06:10:20 PM)		CORE: -1  	1 / 100
+Process13	(08/05/2025, 06:10:06 PM)		CORE: -1  	15 / 100
+Process10	(08/05/2025, 06:10:03 PM)		CORE: -1  	20 / 100
+Process22	(08/05/2025, 06:10:14 PM)		CORE: -1  	5 / 100
+Process17	(08/05/2025, 06:10:10 PM)		CORE: -1  	10 / 100
 
 === Running Process ===
-No processes are currently running.
+Process2	(08/05/2025, 06:09:56 PM)		CORE: 1  	69 / 100
+Process9	(08/05/2025, 06:10:02 PM)		CORE: 0  	21 / 100
 
 === Finished Process ===
-Process1	(06/28/2025, 03:22:01 PM)		FINISHED	141 / 141
-Process2	(06/28/2025, 03:22:10 PM)		FINISHED	185 / 185
-Process3	(06/28/2025, 03:22:19 PM)		FINISHED	172 / 172
-P1	(06/28/2025, 03:22:20 PM)		FINISHED	141 / 141
-Process4	(06/28/2025, 03:22:29 PM)		FINISHED	138 / 138
-Process5	(06/28/2025, 03:22:38 PM)		FINISHED	180 / 180
+No finished process.
