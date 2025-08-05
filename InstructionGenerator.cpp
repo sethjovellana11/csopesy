@@ -1,5 +1,6 @@
 #include "InstructionGenerator.h"
 #include <random>
+#include <algorithm> 
 
 std::string InstructionGenerator::getRandomVar(bool mustExist) {
     std::uniform_int_distribution<> dist(0, varPool.size() - 1);
@@ -105,14 +106,32 @@ std::vector<std::shared_ptr<ICommand>> InstructionGenerator::generate(const std:
             declaredVars.insert(var);
         }
         else if (command == "PRINT") {
-            std::string var;
-            line >> var;
-            if (var.empty()) {
-                std::cout << "invalid PRINT syntax" << std::endl;
-                return {};
+            std::string args;
+            std::getline(line, args); 
+            args.erase(0, args.find_first_not_of(" \t")); 
+
+            if (args.front() == '(' && args.back() == ')') 
+            {
+                args = args.substr(1, args.size() - 2); 
             }
-            commands.push_back(std::make_shared<PrintCommand>(var));
+            
+            if (args.find('+') != std::string::npos && args.find('"') != std::string::npos) {
+                // Parse PRINT("Prefix" + varName)
+                size_t quoteStart = args.find('"');
+                size_t quoteEnd = args.find('"', quoteStart + 1);
+                size_t plusPos = args.find('+');
+
+                std::string prefix = args.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
+                std::string varName = args.substr(plusPos + 1);
+                varName.erase(0, varName.find_first_not_of(" \t"));  // trim left
+
+                commands.push_back(std::make_shared<PrintCommand>(prefix, varName));
+            } else {
+                
+                commands.push_back(std::make_shared<PrintCommand>(args));
+            }
         }
+
         else if (command == "SLEEP") {
             int ticks;
             line >> ticks;
@@ -165,7 +184,7 @@ std::shared_ptr<ICommand> InstructionGenerator::generateRandomInstruction(int cu
 
         case 3: { // PRINT
             std::string var = getRandomVar(true);
-            return std::make_shared<PrintCommand>(var);
+            return std::make_shared<PrintCommand>("", var);
         }
 
         case 4: { // SLEEP

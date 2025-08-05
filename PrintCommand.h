@@ -1,15 +1,16 @@
-#pragma once
-#include "ICommand.h"
-#include "Process.h"
-#include <iostream>
-#include <sstream>
-
 class PrintCommand : public ICommand {
+    std::string prefix;
     std::string varName;
     std::string outputInt;
 
 public:
-    PrintCommand(const std::string& varName) : varName(varName) {}
+    // Old style: PRINT varName
+    PrintCommand(const std::string& varName)
+        : prefix(""), varName(varName) {}
+
+    // New style: PRINT("prefix" + varName)
+    PrintCommand(const std::string& prefix, const std::string& varName)
+        : prefix(prefix), varName(varName) {}
 
     void execute(Process& process) override {
         const auto& vars = process.getVariables();
@@ -17,7 +18,7 @@ public:
 
         if (vars.count(varName)) {
             outputInt = std::to_string(vars.at(varName));
-            output = varName + " = " + std::to_string(vars.at(varName));
+            output = prefix + outputInt;
         } else {
             output = "Variable '" + varName + "' is undefined";
         }
@@ -31,7 +32,15 @@ public:
     }
 
     std::string toString() const override {
-        return "PRINT " + varName + " = " +  outputInt;
+        if (!prefix.empty() && !outputInt.empty()) {
+            return "PRINT " + prefix + " " + outputInt;
+        } else if (!prefix.empty() && outputInt.empty()) {
+            return "PRINT " + prefix + varName + " is empty";
+        } else if (!outputInt.empty()) {
+            return "PRINT " + varName + " = " + outputInt;
+        } else {
+            return "PRINT " + varName + " is empty";
+        }
     }
 
     std::string getName() const override {
